@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>English-Spanish Flashcards</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="container">
+    <h1>Flashcards</h1>
+
+    <!-- Form to add new words -->
+    <div class="form-box">
+        <input type="text" id="englishInput" placeholder="English word">
+        <input type="text" id="spanishInput" placeholder="Spanish word">
+        <button onclick="addCard()">Add Word</button>
+    </div>
+
+    <!-- Flashcard Display -->
+    <div class="flashcard" onclick="flipCard()">
+        <div class="card-inner" id="cardInner">
+            <div class="card-front" id="cardFront">Click Add Word to start</div>
+            <div class="card-back" id="cardBack">-</div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="nav-box">
+        <button onclick="prevCard()">Previous</button>
+        <button onclick="nextCard()">Next</button>
+    </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
