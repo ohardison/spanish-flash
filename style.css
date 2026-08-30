@@ -241,42 +241,45 @@ button { -webkit-tap-highlight-color: rgba(0,0,0,0.06); touch-action: manipulati
 
 /* Target common iPhone widths & similar phones */
 @media only screen and (max-width: 428px), only screen and (max-device-width: 812px) {
-  /* reduce vertical dead space and keep content visible above browser chrome */
-  body { align-items: flex-start; font-size: 18px; }
-  .container { width: 100%; margin: 8px auto; padding: 0 12px; }
-  .login-box { width: 100%; padding: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.10); }
-  h1 { font-size: 24px; margin-bottom: 8px; }
+  /* stronger mobile styles: bigger type, higher contrast, less top whitespace */
+  body { align-items: flex-start; font-size: 18px; background-color: #eef0f5; }
+  .container { width: 100%; margin: 6px auto; padding: 6px 12px; margin-top: 10px; }
+  .login-box { width: 100%; padding: 12px; box-shadow: 0 14px 40px rgba(0,0,0,0.14); background: #fff; }
+  h1 { font-size: 26px; margin-bottom: 6px; }
 
-  /* Make the flashcard bigger and more readable */
-  .flashcard { height: 300px; margin: 8px 0 20px; }
+  /* Make the flashcard much larger and more readable */
+  .flashcard { height: 360px; margin: 6px 0 16px; max-width: 94%; }
   .card-front, .card-back {
-    font-size: 24px;
-    border-radius: 12px;
-    padding: 18px;
-    box-shadow: 0 12px 36px rgba(0,0,0,0.12);
+    font-size: 34px;
+    line-height: 1.15;
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 18px 48px rgba(8,8,20,0.16);
   }
 
   /* Inputs and buttons: larger tap targets and higher contrast */
   .form-box { flex-direction: column; gap: 12px; align-items: stretch; }
   .form-box input, #deleteEnglishInput {
-    width: 100%; font-size: 18px; padding: 16px; border-radius: 12px; background: #fff;
+    width: 100%; font-size: 18px; padding: 16px; border-radius: 12px; background: #fff; border: 1px solid #cfd6e3;
   }
   .form-box button, #btnDeleteByEnglish, #btnDelete, .mode-box button, .nav-box button {
-    width: 100%; padding: 14px 18px; font-size: 17px; border-radius: 12px; box-shadow: 0 8px 0 rgba(0,0,0,0.10), 0 4px 12px rgba(0,0,0,0.08);
+    width: 100%; padding: 14px 18px; font-size: 18px; border-radius: 12px; box-shadow: 0 10px 0 rgba(0,0,0,0.12), 0 6px 18px rgba(0,0,0,0.10);
   }
+
+  /* stronger, saturated colors for action buttons */
+  .form-box button { background-color: #1e7e34; }
+  #btnDeleteByEnglish { background-color: #1e7e34; }
+  #btnDelete { background-color: #c82333; color: #fff; }
+  .nav-box button { background-color: #fff; border: 1px solid #d2d6dc; color: #111; }
 
   /* Make admin delete centered and narrower on tiny screens */
   #btnDelete { max-width: 420px; margin: 0 auto 10px; display: block; }
 
-  .nav-box { flex-wrap: wrap; gap: 12px; padding-bottom: 14px; }
-
-  /* increase contrast for small screens */
-  .card-front { color: #0b0b0b; }
-  .card-back { color: #fff; }
+  .nav-box { flex-wrap: wrap; gap: 12px; padding-bottom: 12px; justify-content: center; }
 }
 
 /* Larger high-density devices (iPhone Plus/Max) tweaks */
 @media only screen and (min-device-pixel-ratio: 2) and (max-width: 736px) {
-  .card-front, .card-back { font-size: 26px; }
+  .card-front, .card-back { font-size: 36px; }
 }
 
