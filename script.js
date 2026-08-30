@@ -10,7 +10,7 @@ let currentIndex = 0;
 let isFlipped = false;
 
 // Mode & practice state
-let mode = 'edit'; // 'edit' or 'practice'
+let mode = 'practice'; // 'edit' or 'practice'
 let practiceOrder = [];
 let practiceIndex = 0;
 let practiceScore = 0;
@@ -85,14 +85,16 @@ function updateAuthUI() {
   const userEmail = document.getElementById('userEmail');
   const editArea = document.getElementById('editArea');
   const deleteBtn = document.getElementById('btnDelete');
+  const addBtn = document.getElementById('btnAdd');
+  const containerEl = document.querySelector('.container');
 
   const isAdmin = Boolean(currentUser && currentUser.email && currentUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
 
   if (currentUser) {
-    loginBox.style.display = 'none';
-    userInfo.style.display = 'block';
-    userEmail.innerText = currentUser.email;
-    document.querySelector('.container').style.display = 'block';
+    if (loginBox) loginBox.style.display = 'none';
+    if (userInfo) userInfo.style.display = 'block';
+    if (userEmail) userEmail.innerText = currentUser.email;
+    if (containerEl) containerEl.style.display = 'block';
 
     // Only show edit controls (add/list/delete) to the admin account. Everyone else sees Practice mode only.
     if (editArea) {
@@ -100,13 +102,23 @@ function updateAuthUI() {
       else editArea.style.display = 'none';
     }
     if (deleteBtn) deleteBtn.style.display = isAdmin ? 'inline-block' : 'none';
+    if (addBtn) addBtn.style.display = isAdmin ? 'inline-block' : 'none';
 
     // If a non-admin ended up in edit mode, switch them to practice for safety
     if (!isAdmin && mode === 'edit') setMode('practice');
   } else {
-    loginBox.style.display = 'block';
-    userInfo.style.display = 'none';
-    document.querySelector('.container').style.display = 'none';
+    // Not signed in: show flashcards landing page using localStorage fallback
+    if (loginBox) loginBox.style.display = 'block';
+    if (userInfo) userInfo.style.display = 'none';
+    if (containerEl) containerEl.style.display = 'block';
+
+    // Hide edit controls for anonymous users
+    if (editArea) editArea.style.display = 'none';
+    if (deleteBtn) deleteBtn.style.display = 'none';
+    if (addBtn) addBtn.style.display = 'none';
+
+    // Ensure anonymous users land in practice mode
+    if (mode === 'edit') setMode('practice');
   }
 }
 
