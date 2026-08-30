@@ -264,16 +264,21 @@ function prevCard() {
 // MODE handling
 function setMode(newMode) {
   mode = newMode;
-  document.getElementById('modeEditBtn').disabled = mode === 'edit';
-  document.getElementById('modePracticeBtn').disabled = mode === 'practice';
+  const modeEditBtn = document.getElementById('modeEditBtn');
+  const modePracticeBtn = document.getElementById('modePracticeBtn');
+  if (modeEditBtn) modeEditBtn.disabled = mode === 'edit';
+  if (modePracticeBtn) modePracticeBtn.disabled = mode === 'practice';
+
+  const editAreaEl = document.getElementById('editArea');
+  const practiceAreaEl = document.getElementById('practiceArea');
 
   if (mode === 'edit') {
-    document.getElementById('editArea').style.display = 'block';
-    document.getElementById('practiceArea').style.display = 'none';
+    if (editAreaEl) editAreaEl.style.display = 'block';
+    if (practiceAreaEl) practiceAreaEl.style.display = 'none';
     displayCard();
   } else {
-    document.getElementById('editArea').style.display = 'none';
-    document.getElementById('practiceArea').style.display = 'block';
+    if (editAreaEl) editAreaEl.style.display = 'none';
+    if (practiceAreaEl) practiceAreaEl.style.display = 'block';
     startPractice();
   }
 }
