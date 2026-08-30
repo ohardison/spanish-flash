@@ -96,10 +96,9 @@ function updateAuthUI() {
     if (userEmail) userEmail.innerText = currentUser.email;
     if (containerEl) containerEl.style.display = 'block';
 
-    // Only show edit controls (add/list/delete) to the admin account. Everyone else sees Practice mode only.
+    // Only show edit controls (add/list/delete) to the admin account. Admin always sees the add form below flashcards.
     if (editArea) {
-      if (isAdmin) editArea.style.display = (mode === 'edit') ? 'block' : 'none';
-      else editArea.style.display = 'none';
+      editArea.style.display = isAdmin ? 'block' : 'none';
     }
     if (deleteBtn) deleteBtn.style.display = isAdmin ? 'inline-block' : 'none';
     if (addBtn) addBtn.style.display = isAdmin ? 'inline-block' : 'none';
@@ -169,9 +168,34 @@ async function supabaseSignIn() {
     return;
   }
 
+  console.debug('Attempting sign in for', email, 'password length:', password ? password.length : 0);
   const { error, data } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) { msg.innerText = error.message; msg.style.display = 'block'; }
-  else { currentUser = data.user; updateAuthUI(); await loadFlashcardsFromDB(); }
+  if (error) {
+    console.error('supabase signIn error object:', error);
+    msg.innerText = error.message || JSON.stringify(error);
+    msg.style.display = 'block';
+  } else {
+    console.debug('signIn success', data);
+    currentUser = data.user;
+
+    // force-hide login UI and show admin edit area if this user is admin
+    const loginBoxEl = document.getElementById('loginBox');
+    if (loginBoxEl) loginBoxEl.style.display = 'none';
+
+    updateAuthUI();
+    // extra safeguard: if admin, explicitly un-hide edit form
+    try {
+      const isAdmin = currentUser && currentUser.email && currentUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+      if (isAdmin) {
+        const editArea = document.getElementById('editArea');
+        if (editArea) editArea.style.display = 'block';
+        const addBtn = document.getElementById('btnAdd'); if (addBtn) addBtn.style.display = 'inline-block';
+        const deleteBtn = document.getElementById('btnDelete'); if (deleteBtn) deleteBtn.style.display = 'inline-block';
+      }
+    } catch(e) { console.error('post-signin UI patch failed', e); }
+
+    await loadFlashcardsFromDB();
+  }
 }
 
 async function signOut() {
