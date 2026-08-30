@@ -16,9 +16,17 @@ let practiceTotal = 0;
 // Initialize: fetch config from server and setup supabase client if configured
 window.onload = async function() {
   try {
-    const res = await fetch('/config');
-    if (!res.ok) throw new Error('no config');
-    const cfg = await res.json();
+    // First, allow static embedding of config for static hosts (GitHub Pages).
+    // If deploy target injected window.__SUPABASE_CONFIG__, use that; otherwise fall back to /config endpoint.
+    let cfg = null;
+    if (window.__SUPABASE_CONFIG__ && window.__SUPABASE_CONFIG__.supabaseUrl) {
+      console.log('Using embedded Supabase config from window.__SUPABASE_CONFIG__');
+      cfg = window.__SUPABASE_CONFIG__;
+    } else {
+      const res = await fetch('/config');
+      if (!res.ok) throw new Error('no config');
+      cfg = await res.json();
+    }
 
     // If the Supabase UMD client is loaded via CDN, use the global; otherwise, try dynamic import
     if (window.supabase && typeof window.supabase.createClient === 'function') {
