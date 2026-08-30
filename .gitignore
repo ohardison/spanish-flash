@@ -2,3 +2,5 @@
 node_modules/
 create_env.js
 .idea/
+.scripts/
+
