@@ -108,7 +108,7 @@ function updateAuthUI() {
     if (!isAdmin && mode === 'edit') setMode('practice');
   } else {
     // Not signed in: show flashcards landing page using localStorage fallback
-    if (loginBox) loginBox.style.display = 'block';
+    if (loginBox) loginBox.style.display = 'none';
     if (userInfo) userInfo.style.display = 'none';
     if (containerEl) containerEl.style.display = 'block';
 
@@ -120,6 +120,9 @@ function updateAuthUI() {
     // Ensure anonymous users land in practice mode
     if (mode === 'edit') setMode('practice');
   }
+
+  // Apply the UI mode to ensure practice/edit areas are shown/hidden correctly
+  try { setMode(mode); } catch (e) { /* ignore if not defined yet */ }
 }
 
 async function supabaseSignUp() {
@@ -290,8 +293,13 @@ function setMode(newMode) {
     displayCard();
   } else {
     if (editAreaEl) editAreaEl.style.display = 'none';
-    if (practiceAreaEl) practiceAreaEl.style.display = 'block';
-    startPractice();
+    if (practiceAreaEl) {
+      practiceAreaEl.style.display = 'block';
+      startPractice();
+    } else {
+      // No practice UI; just show the flashcard view
+      displayCard();
+    }
   }
 }
 
@@ -388,6 +396,14 @@ function wireUi() {
   if (btnSignUp) btnSignUp.addEventListener('click', () => { try { supabaseSignUp(); } catch(e){console.error(e);} });
   if (btnSignIn) btnSignIn.addEventListener('click', () => { try { supabaseSignIn(); } catch(e){console.error(e);} });
   if (btnSignOut) btnSignOut.addEventListener('click', () => { try { signOut(); } catch(e){console.error(e);} });
+
+  // admin sign-in toggle (shows the hidden login box so admin can authenticate)
+  const adminSignInBtn = document.getElementById('adminSignInBtn');
+  if (adminSignInBtn) adminSignInBtn.addEventListener('click', () => {
+    const loginBoxEl = document.getElementById('loginBox');
+    if (!loginBoxEl) return;
+    loginBoxEl.style.display = loginBoxEl.style.display === 'block' ? 'none' : 'block';
+  });
   if (addBtn) addBtn.addEventListener('click', () => { try { addCard(); } catch(e){console.error(e);} });
   const deleteBtn = document.getElementById('btnDelete');
   if (deleteBtn) deleteBtn.addEventListener('click', () => { try { deleteCard(); } catch(e){console.error(e);} });

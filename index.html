@@ -22,45 +22,33 @@
     </div>
 </div>
 
+<button id="adminSignInBtn" style="position:fixed; top:8px; right:8px; z-index:50;">Admin sign in</button>
+
 <div class="container" style="display: none;">
-    <h3>Add new Phrases or Words</h3>
-    <!-- EDIT: Form to add new words -->
-    <div id="editArea">
+
+    <h2>Flashcards</h2>
+    <!-- Flashcard Display (always visible) -->
+    <div class="flashcard">
+        <div class="card-inner" id="cardInner">
+            <div class="card-front" id="cardFront">Click Add to start</div>
+            <div class="card-back" id="cardBack">-</div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="nav-box">
+        <button id="prevBtn">Previous</button>
+        <button id="nextBtn">Next</button>
+    </div>
+
+    <!-- EDIT: Form to add new words (only visible to admins) -->
+    <div id="editArea" style="display:none; margin-top:16px;">
+      <h3>Add new Phrases or Words</h3>
       <div class="form-box">
           <input type="text" id="englishInput" placeholder="English">
           <input type="text" id="spanishInput" placeholder="Spanish">
           <button id="btnAdd">Add</button>
           <button id="btnDelete" style="margin-left:8px;">Delete</button>
-      </div>
-
-      <h2>Flashcards</h2>
-      <!-- Flashcard Display -->
-      <div class="flashcard">
-          <div class="card-inner" id="cardInner">
-              <div class="card-front" id="cardFront">Click Add to start</div>
-              <div class="card-back" id="cardBack">-</div>
-          </div>
-      </div>
-
-      <!-- Navigation -->
-      <div class="nav-box">
-          <button id="prevBtn">Previous</button>
-          <button id="nextBtn">Next</button>
-      </div>
-    </div>
-
-    <!-- PRACTICE: quiz UI (hidden until Practice mode active) -->
-    <div id="practiceArea" style="display: none;">
-      <div class="practice-box">
-        <div id="practiceQuestion">No cards available. Switch to Edit Mode to add words or phrases.</div>
-        <input type="text" id="practiceAnswer" placeholder="Type the Spanish (or English) translation">
-        <div class="practice-controls">
-          <button id="practiceSubmitBtn">Submit</button>
-          <button id="practiceNextBtn" style="display:none;">Next</button>
-          <button id="practiceEndBtn">End</button>
-        </div>
-        <div id="practiceFeedback" style="margin-top:8px; font-weight:600;"></div>
-        <div id="practiceScore" style="margin-top:6px;">Score: 0 / 0</div>
       </div>
     </div>
 
