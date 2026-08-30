@@ -177,3 +177,88 @@ h1 {
 @media (max-width: 480px) {
   .card-front, .card-back { font-size: 20px; }
 }
+
+/* Admin delete-by-English input and button should match the add form sizing */
+#deleteEnglishInput {
+  padding: 14px 16px;
+  border: 1px solid #d0d0d5;
+  border-radius: 8px;
+  font-size: 16px;
+  height: calc(14px + 16px + 16px); /* approximate to match .form-box input */
+}
+
+#btnDeleteByEnglish {
+  padding: 12px 18px;
+  background-color: #28a745; /* match add button green */
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-left: 8px;
+}
+
+#adminMsg { font-size: 14px; }
+
+/* 3D-like button styling: subtle shadow, depth and press animation */
+button, .mode-box button, .form-box button, .nav-box button, #btnDeleteByEnglish, #btnDelete {
+  box-shadow: 0 6px 0 rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  position: relative;
+}
+
+/* Slight gradient overlay for light buttons */
+button, .mode-box button, .nav-box button {
+  background-image: linear-gradient(rgba(255,255,255,0.28), rgba(0,0,0,0.03));
+}
+
+/* Keep colored buttons' base color but add sheen */
+.form-box button, #btnDeleteByEnglish, #btnDelete {
+  background-image: linear-gradient(rgba(255,255,255,0.18), rgba(0,0,0,0.06));
+}
+
+button:active, .mode-box button:active, .form-box button:active, .nav-box button:active, #btnDeleteByEnglish:active, #btnDelete:active {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.06);
+}
+
+button:focus { outline: none; box-shadow: 0 6px 0 rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.1); }
+
+/* iPhone / small-device adjustments: safe-area, larger tap targets, and compact layout */
+/* Improve touch friendliness on iOS devices and similar phones */
+button { -webkit-tap-highlight-color: rgba(0,0,0,0.06); touch-action: manipulation; }
+
+@supports(padding: env(safe-area-inset-top)) {
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  .container {
+    max-width: calc(100% - env(safe-area-inset-left) - env(safe-area-inset-right) - 20px);
+  }
+}
+
+/* Target common iPhone widths & similar phones */
+@media only screen and (max-width: 428px), only screen and (max-device-width: 812px) {
+  body { align-items: flex-start; }
+  .container { width: 100%; margin: 12px auto; padding: 0 12px; }
+  .login-box { width: 100%; padding: 14px; box-shadow: 0 8px 20px rgba(0,0,0,0.09); }
+  h1 { font-size: 22px; }
+  .flashcard { height: 240px; margin: 12px 0 28px; }
+  .card-front, .card-back { font-size: 22px; border-radius: 10px; padding: 14px; }
+  .form-box { flex-direction: column; gap: 10px; align-items: stretch; }
+  .form-box input, #deleteEnglishInput { width: 100%; font-size: 18px; padding: 16px; border-radius: 12px; }
+  .form-box button, #btnDeleteByEnglish, #btnDelete, .mode-box button, .nav-box button {
+    width: 100%; padding: 14px 16px; font-size: 17px; border-radius: 12px;
+  }
+  .nav-box { flex-wrap: wrap; gap: 12px; padding-bottom: 18px; }
+  /* Ensure the centered delete button looks good on narrow screens */
+  #btnDelete { max-width: 360px; margin: 0 auto; display: block; }
+}
+
+/* Larger high-density devices (iPhone Plus/Max) tweaks */
+@media only screen and (min-device-pixel-ratio: 2) and (max-width: 736px) {
+  .card-front, .card-back { font-size: 24px; }
+}
+
