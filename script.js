@@ -29,6 +29,10 @@ window.onload = async function() {
     }
 
     // If the Supabase UMD client is loaded via CDN, use the global; otherwise, try dynamic import
+    // Debug logging to help diagnose invalid URL issues
+    console.debug('Supabase config (raw):', cfg);
+    console.debug('supabaseUrl type:', typeof cfg?.supabaseUrl, 'value:', String(cfg?.supabaseUrl));
+
     if (window.supabase && typeof window.supabase.createClient === 'function') {
       supabase = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
     } else {
