@@ -41,18 +41,34 @@
         <button id="nextBtn">Next</button>
     </div>
 
+    <!-- Intro line for admins (only visible to admins) -->
+    <div id="adminIntro" style="display:none; margin-top:12px; font-style:italic; font-size:14px; color:#444; text-align:center;"><hr/>Admin controls<br>Delete current card, add new term below, or delete by English term.</div>
+
     <!-- EDIT: Form to add new words (only visible to admins) -->
     <div id="editArea" style="display:none; margin-top:16px;">
+      <!-- Delete current card button centered above add form -->
+      <div style="text-align:center; margin-bottom:12px;">
+        <button id="btnDelete" style="padding:12px 18px; border-radius:8px; background-color:#dc3545; color:#fff; border:none;">Delete Card Above</button>
+      </div>
+
       <h3>Add new Phrases or Words</h3>
       <div class="form-box">
           <input type="text" id="englishInput" placeholder="English">
           <input type="text" id="spanishInput" placeholder="Spanish">
           <button id="btnAdd">Add</button>
-          <button id="btnDelete" style="margin-left:8px;">Delete</button>
       </div>
+
+      <!-- Delete by English term -->
+      <div style="margin-top:10px; display:flex; justify-content:top; align-items:center;">
+        <input type="text" id="deleteEnglishInput" placeholder="English word or phrase to delete" style="width:60%; height:20px">
+        <button id="btnDeleteByEnglish" aria-label="Delete by English term">Delete</button>
+      </div>
+      <div id="adminMsg" style="display:none; margin-top:8px; font-weight:600; color:red;"></div>
     </div>
 
 </div>
+
+<div id="debugUser" style="position:fixed; bottom:10px; height:13px; left:6px; width=90%; font-size:12px; font-style:italic; color:#666; z-index:60; display:none;"></div>
 
 <!-- Optional Supabase config injected at deploy time by GitHub Actions -->
 <script src="/supabase-config.js" defer></script>

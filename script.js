@@ -5,6 +5,14 @@ let currentUser = null;
 // Administrator email — UI and RLS will treat this account as the superuser
 const ADMIN_EMAIL = 'hardisun@gmail.com';
 
+// Ensure admin intro is hidden as early as possible to avoid flicker or stale state
+document.addEventListener('DOMContentLoaded', () => {
+  try {
+    const ai = document.getElementById('adminIntro');
+    if (ai) ai.style.display = 'none';
+  } catch (e) {}
+});
+
 let flashcards = [];
 let currentIndex = 0;
 let isFlipped = false;
@@ -86,7 +94,12 @@ function updateAuthUI() {
   const editArea = document.getElementById('editArea');
   const deleteBtn = document.getElementById('btnDelete');
   const addBtn = document.getElementById('btnAdd');
+  const adminIntro = document.getElementById('adminIntro');
+  const adminMsg = document.getElementById('adminMsg');
   const containerEl = document.querySelector('.container');
+
+  // default-hide admin intro until we determine admin status
+  if (adminIntro) adminIntro.style.display = 'none';
 
   const isAdmin = Boolean(currentUser && currentUser.email && currentUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
 
@@ -102,6 +115,18 @@ function updateAuthUI() {
     }
     if (deleteBtn) deleteBtn.style.display = isAdmin ? 'inline-block' : 'none';
     if (addBtn) addBtn.style.display = isAdmin ? 'inline-block' : 'none';
+    if (adminIntro) adminIntro.style.display = isAdmin ? 'block' : 'none';
+    if (adminMsg) { adminMsg.style.display = 'none'; adminMsg.innerText = ''; adminMsg.style.color='red'; }
+
+    // Set adminSignInBtn to act as Sign out when logged in
+    if (adminSignInBtn) {
+      adminSignInBtn.textContent = 'Sign out';
+      adminSignInBtn.onclick = async () => {
+        try {
+          await signOut();
+        } catch (e) { console.error('signOut failed', e); }
+      };
+    }
 
     // If a non-admin ended up in edit mode, switch them to practice for safety
     if (!isAdmin && mode === 'edit') setMode('practice');
@@ -115,6 +140,18 @@ function updateAuthUI() {
     if (editArea) editArea.style.display = 'none';
     if (deleteBtn) deleteBtn.style.display = 'none';
     if (addBtn) addBtn.style.display = 'none';
+    if (adminIntro) adminIntro.style.display = 'none';
+    if (adminMsg) { adminMsg.style.display = 'none'; adminMsg.innerText = ''; }
+
+    // Set adminSignInBtn to open login box when not signed in
+    if (adminSignInBtn) {
+      adminSignInBtn.textContent = 'Admin sign in';
+      adminSignInBtn.onclick = () => {
+        const loginBoxEl = document.getElementById('loginBox');
+        if (!loginBoxEl) return;
+        loginBoxEl.style.display = loginBoxEl.style.display === 'block' ? 'none' : 'block';
+      };
+    }
 
     // Ensure anonymous users land in practice mode
     if (mode === 'edit') setMode('practice');
@@ -122,6 +159,17 @@ function updateAuthUI() {
 
   // Apply the UI mode to ensure practice/edit areas are shown/hidden correctly
   try { setMode(mode); } catch (e) { /* ignore if not defined yet */ }
+
+  // Debug line: show user email and role at bottom-left for troubleshooting
+  try {
+    const dbg = document.getElementById('debugUser');
+    if (dbg) {
+      const role = currentUser ? (currentUser.email && currentUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase() ? 'admin' : 'user') : 'anonymous';
+      const email = currentUser?.email || (supabase ? 'no-session' : 'no-supabase');
+      dbg.innerText = `${email} - ${role}`;
+      dbg.style.display = 'block';
+    }
+  } catch (e) { /* ignore */ }
 }
 
 async function supabaseSignUp() {
@@ -191,6 +239,9 @@ async function supabaseSignIn() {
         if (editArea) editArea.style.display = 'block';
         const addBtn = document.getElementById('btnAdd'); if (addBtn) addBtn.style.display = 'inline-block';
         const deleteBtn = document.getElementById('btnDelete'); if (deleteBtn) deleteBtn.style.display = 'inline-block';
+        const adminIntro = document.getElementById('adminIntro'); if (adminIntro) adminIntro.style.display = 'block';
+      } else {
+        const adminIntro = document.getElementById('adminIntro'); if (adminIntro) adminIntro.style.display = 'none';
       }
     } catch(e) { console.error('post-signin UI patch failed', e); }
 
@@ -265,6 +316,44 @@ async function deleteCard() {
   displayCard();
 }
 
+// Delete flashcards by English text (case-insensitive). Admin-only in UI; RLS enforces server-side access.
+async function deleteByEnglish() {
+  const val = (document.getElementById('deleteEnglishInput') || {}).value;
+  const msgEl = document.getElementById('adminMsg');
+  if (msgEl) { msgEl.style.display = 'none'; msgEl.innerText = ''; msgEl.style.color = 'red'; }
+  if (!val || !val.trim()) {
+    if (msgEl) { msgEl.innerText = 'Please enter the English text to delete.'; msgEl.style.display = 'block'; }
+    return;
+  }
+  const search = val.trim();
+
+  if (supabase && currentUser) {
+    // Find matching rows (case-insensitive)
+    const { data, error } = await supabase.from('flashcards').select('id,english,spanish').ilike('english', search);
+    if (error) { console.error('lookup error', error); if (msgEl) { msgEl.innerText = error.message || JSON.stringify(error); msgEl.style.display = 'block'; } return; }
+    if (!data || data.length === 0) { if (msgEl) { msgEl.innerText = 'No matching card found.'; msgEl.style.display = 'block'; } return; }
+
+    const ids = data.map(d => d.id);
+    const { error: delErr } = await supabase.from('flashcards').delete().in('id', ids);
+    if (delErr) { console.error('delete error', delErr); if (msgEl) { msgEl.innerText = delErr.message || JSON.stringify(delErr); msgEl.style.display = 'block'; } return; }
+
+    // update local flashcards cache
+    flashcards = flashcards.filter(f => !ids.includes(f.id));
+    if (currentIndex >= flashcards.length) currentIndex = Math.max(0, flashcards.length - 1);
+    displayCard();
+    if (msgEl) { msgEl.innerText = `Deleted ${ids.length} card(s).`; msgEl.style.display = 'block'; msgEl.style.color = 'green'; }
+  } else {
+    // local fallback: remove exact case-insensitive matches
+    const idx = flashcards.findIndex(f => (f.english || '').toLowerCase() === search.toLowerCase());
+    if (idx === -1) { if (msgEl) { msgEl.innerText = 'No matching local card found.'; msgEl.style.display = 'block'; } return; }
+    flashcards.splice(idx, 1);
+    saveFlashcardsToLocal();
+    currentIndex = Math.min(currentIndex, flashcards.length - 1);
+    displayCard();
+    if (msgEl) { msgEl.innerText = 'Deleted local card.'; msgEl.style.display = 'block'; msgEl.style.color = 'green'; }
+  }
+}
+
 
 function flipCard() {
   const cardInner = document.getElementById('cardInner');
@@ -310,13 +399,16 @@ function setMode(newMode) {
 
   const editAreaEl = document.getElementById('editArea');
   const practiceAreaEl = document.getElementById('practiceArea');
+  const isAdmin = Boolean(currentUser && currentUser.email && currentUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
 
   if (mode === 'edit') {
-    if (editAreaEl) editAreaEl.style.display = 'block';
+    // Only allow showing edit area when admin
+    if (editAreaEl) editAreaEl.style.display = isAdmin ? 'block' : 'none';
     if (practiceAreaEl) practiceAreaEl.style.display = 'none';
     displayCard();
   } else {
-    if (editAreaEl) editAreaEl.style.display = 'none';
+    // In non-edit mode, keep edit area visible for admins but hide for non-admins
+    if (editAreaEl) editAreaEl.style.display = isAdmin ? 'block' : 'none';
     if (practiceAreaEl) {
       practiceAreaEl.style.display = 'block';
       startPractice();
@@ -421,16 +513,17 @@ function wireUi() {
   if (btnSignIn) btnSignIn.addEventListener('click', () => { try { supabaseSignIn(); } catch(e){console.error(e);} });
   if (btnSignOut) btnSignOut.addEventListener('click', () => { try { signOut(); } catch(e){console.error(e);} });
 
-  // admin sign-in toggle (shows the hidden login box so admin can authenticate)
+  // admin sign-in button exists but behavior is controlled by updateAuthUI() based on session state
   const adminSignInBtn = document.getElementById('adminSignInBtn');
-  if (adminSignInBtn) adminSignInBtn.addEventListener('click', () => {
-    const loginBoxEl = document.getElementById('loginBox');
-    if (!loginBoxEl) return;
-    loginBoxEl.style.display = loginBoxEl.style.display === 'block' ? 'none' : 'block';
-  });
+  const adminIntro = document.getElementById('adminIntro');
+  if (adminIntro) adminIntro.style.display = 'none'; // ensure hidden at startup
+  // Do not bind click here; updateAuthUI will set the button text and handler depending on auth state
+  
   if (addBtn) addBtn.addEventListener('click', () => { try { addCard(); } catch(e){console.error(e);} });
   const deleteBtn = document.getElementById('btnDelete');
   if (deleteBtn) deleteBtn.addEventListener('click', () => { try { deleteCard(); } catch(e){console.error(e);} });
+  const btnDeleteByEnglish = document.getElementById('btnDeleteByEnglish');
+  if (btnDeleteByEnglish) btnDeleteByEnglish.addEventListener('click', () => { try { deleteByEnglish(); } catch(e){console.error(e);} });
   if (modeEdit) modeEdit.addEventListener('click', () => setMode('edit'));
   if (modePractice) modePractice.addEventListener('click', () => setMode('practice'));
   if (prevBtn) prevBtn.addEventListener('click', () => prevCard());
