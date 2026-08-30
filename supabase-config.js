@@ -1,4 +1,4 @@
 window.__SUPABASE_CONFIG__ = {
-  supabaseUrl: "${SUPABASE_URL}",
-  supabaseAnonKey: "${SUPABASE_ANON_KEY}"
+  supabaseUrl: "https://kngeaxcjmagahblnmffl.supabase.co",
+  supabaseAnonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuZ2VheGNqbWFnYWhibG5tZmZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxMDA4NjQsImV4cCI6MjEwMzY3Njg2NH0.lc-9tP1N39z17d_zszF4z2gVXbxtiesgOmWui6aIYPk"
 };
