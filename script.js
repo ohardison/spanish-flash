@@ -2,6 +2,9 @@
 let supabase = null;
 let currentUser = null;
 
+// Administrator email — UI and RLS will treat this account as the superuser
+const ADMIN_EMAIL = 'hardisun@gmail.com';
+
 let flashcards = [];
 let currentIndex = 0;
 let isFlipped = false;
@@ -80,12 +83,26 @@ function updateAuthUI() {
   const loginBox = document.getElementById('loginBox');
   const userInfo = document.getElementById('userInfo');
   const userEmail = document.getElementById('userEmail');
+  const editArea = document.getElementById('editArea');
+  const deleteBtn = document.getElementById('btnDelete');
+
+  const isAdmin = Boolean(currentUser && currentUser.email && currentUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
 
   if (currentUser) {
     loginBox.style.display = 'none';
     userInfo.style.display = 'block';
     userEmail.innerText = currentUser.email;
     document.querySelector('.container').style.display = 'block';
+
+    // Only show edit controls (add/list/delete) to the admin account. Everyone else sees Practice mode only.
+    if (editArea) {
+      if (isAdmin) editArea.style.display = (mode === 'edit') ? 'block' : 'none';
+      else editArea.style.display = 'none';
+    }
+    if (deleteBtn) deleteBtn.style.display = isAdmin ? 'inline-block' : 'none';
+
+    // If a non-admin ended up in edit mode, switch them to practice for safety
+    if (!isAdmin && mode === 'edit') setMode('practice');
   } else {
     loginBox.style.display = 'block';
     userInfo.style.display = 'none';
@@ -100,6 +117,19 @@ async function supabaseSignUp() {
   msg.style.display = 'none';
 
   if (!supabase) { msg.innerText = 'Server not configured for Supabase.'; msg.style.display = 'block'; return; }
+
+  // Basic client-side validation
+  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    msg.innerText = 'Please enter a valid email address.';
+    msg.style.display = 'block';
+    return;
+  }
+  if (!password || password.length < 6) {
+    msg.innerText = 'Please enter a password of at least 6 characters.';
+    msg.style.display = 'block';
+    return;
+  }
+
   const { error } = await supabase.auth.signUp({ email, password });
   if (error) { msg.innerText = error.message; msg.style.display = 'block'; }
   else { msg.innerText = 'Check your email to confirm (if required).'; msg.style.display = 'block'; }
@@ -112,6 +142,18 @@ async function supabaseSignIn() {
   msg.style.display = 'none';
 
   if (!supabase) { msg.innerText = 'Server not configured for Supabase.'; msg.style.display = 'block'; return; }
+
+  if (!email) {
+    msg.innerText = 'Please enter your email.';
+    msg.style.display = 'block';
+    return;
+  }
+  if (!password) {
+    msg.innerText = 'Please enter your password.';
+    msg.style.display = 'block';
+    return;
+  }
+
   const { error, data } = await supabase.auth.signInWithPassword({ email, password });
   if (error) { msg.innerText = error.message; msg.style.display = 'block'; }
   else { currentUser = data.user; updateAuthUI(); await loadFlashcardsFromDB(); }
@@ -162,6 +204,28 @@ async function addCard() {
   currentIndex = flashcards.length - 1;
   displayCard();
 }
+
+// Delete currently-displayed card (admin-only in UI; RLS enforces server-side access)
+async function deleteCard() {
+  if (flashcards.length === 0) return;
+  const card = flashcards[currentIndex];
+  if (!card) return;
+
+  if (supabase && currentUser && card.id) {
+    const { error } = await supabase.from('flashcards').delete().eq('id', card.id);
+    if (error) { console.error('delete error', error); return; }
+    // remove locally
+    flashcards.splice(currentIndex, 1);
+  } else {
+    // local fallback
+    flashcards.splice(currentIndex, 1);
+    saveFlashcardsToLocal();
+  }
+
+  if (currentIndex >= flashcards.length) currentIndex = Math.max(0, flashcards.length - 1);
+  displayCard();
+}
+
 
 function flipCard() {
   const cardInner = document.getElementById('cardInner');
@@ -308,6 +372,8 @@ function wireUi() {
   if (btnSignIn) btnSignIn.addEventListener('click', () => { try { supabaseSignIn(); } catch(e){console.error(e);} });
   if (btnSignOut) btnSignOut.addEventListener('click', () => { try { signOut(); } catch(e){console.error(e);} });
   if (addBtn) addBtn.addEventListener('click', () => { try { addCard(); } catch(e){console.error(e);} });
+  const deleteBtn = document.getElementById('btnDelete');
+  if (deleteBtn) deleteBtn.addEventListener('click', () => { try { deleteCard(); } catch(e){console.error(e);} });
   if (modeEdit) modeEdit.addEventListener('click', () => setMode('edit'));
   if (modePractice) modePractice.addEventListener('click', () => setMode('practice'));
   if (prevBtn) prevBtn.addEventListener('click', () => prevCard());
