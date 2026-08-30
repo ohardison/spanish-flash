@@ -6,31 +6,67 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="container">
-    <h1>Flashcards</h1>
-
-    <!-- Form to add new words -->
-    <div class="form-box">
-        <input type="text" id="englishInput" placeholder="English word">
-        <input type="text" id="spanishInput" placeholder="Spanish word">
-        <button onclick="addCard()">Add Word</button>
+<!-- Login box shown before app; app container hidden until successful login -->
+<div id="loginBox" class="login-box">
+    <h2>Sign in / Sign up</h2>
+    <input type="email" id="loginEmail" placeholder="Email" style="width:80%; padding:8px; margin:6px 0;">
+    <input type="password" id="loginPass" placeholder="Password" style="width:80%; padding:8px; margin:6px 0;">
+    <div style="margin-top:8px;">
+      <button id="btnSignIn">Sign in</button>
+      <button id="btnSignUp">Sign up</button>
     </div>
-
-    <!-- Flashcard Display -->
-    <div class="flashcard" onclick="flipCard()">
-        <div class="card-inner" id="cardInner">
-            <div class="card-front" id="cardFront">Click Add Word to start</div>
-            <div class="card-back" id="cardBack">-</div>
-        </div>
-    </div>
-
-    <!-- Navigation -->
-    <div class="nav-box">
-        <button onclick="prevCard()">Previous</button>
-        <button onclick="nextCard()">Next</button>
+    <p id="loginMsg" style="color: red; display: none;"></p>
+    <div id="userInfo" style="display:none; margin-top:8px;">
+      <span id="userEmail"></span>
+      <button id="btnSignOut" style="margin-left:8px;">Sign out</button>
     </div>
 </div>
 
-<script src="script.js"></script>
+<div class="container" style="display: none;">
+    <h3>Add new Phrases or Words</h3>
+    <!-- EDIT: Form to add new words -->
+    <div id="editArea">
+      <div class="form-box">
+          <input type="text" id="englishInput" placeholder="English">
+          <input type="text" id="spanishInput" placeholder="Spanish">
+          <button id="btnAdd">Add</button>
+      </div>
+
+      <h2>Flashcards</h2>
+      <!-- Flashcard Display -->
+      <div class="flashcard">
+          <div class="card-inner" id="cardInner">
+              <div class="card-front" id="cardFront">Click Add to start</div>
+              <div class="card-back" id="cardBack">-</div>
+          </div>
+      </div>
+
+      <!-- Navigation -->
+      <div class="nav-box">
+          <button id="prevBtn">Previous</button>
+          <button id="nextBtn">Next</button>
+      </div>
+    </div>
+
+    <!-- PRACTICE: quiz UI (hidden until Practice mode active) -->
+    <div id="practiceArea" style="display: none;">
+      <div class="practice-box">
+        <div id="practiceQuestion">No cards available. Switch to Edit Mode to add words or phrases.</div>
+        <input type="text" id="practiceAnswer" placeholder="Type the Spanish (or English) translation">
+        <div class="practice-controls">
+          <button id="practiceSubmitBtn">Submit</button>
+          <button id="practiceNextBtn" style="display:none;">Next</button>
+          <button id="practiceEndBtn">End</button>
+        </div>
+        <div id="practiceFeedback" style="margin-top:8px; font-weight:600;"></div>
+        <div id="practiceScore" style="margin-top:6px;">Score: 0 / 0</div>
+      </div>
+    </div>
+
+</div>
+
+<!-- Load Supabase client UMD build from CDN so browser can use it directly -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+<script type="module" src="script.js"></script>
 </body>
 </html>
