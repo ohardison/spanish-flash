@@ -1,0 +1,23 @@
+// Example: create a local .env file from this template.
+// This file contains NO secrets — replace the placeholder values and run:
+//   node create_env.example   (or copy contents into a new .env file manually)
+
+const fs = require('fs');
+const path = require('path');
+
+const envPath = path.join(__dirname, '.env');
+if (fs.existsSync(envPath)) {
+  console.log('.env already exists — no changes made.');
+  process.exit(0);
+}
+
+const content = `# Local environment for spanish-flash
+# Replace the placeholders below with your own values
+DEFAULT_USER=your_default_user
+DEFAULT_PASS=your_default_password
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+`;
+
+fs.writeFileSync(envPath, content, { encoding: 'utf8', flag: 'wx' });
+console.log('Created .env from create_env.example. Edit .env to add real values.');
