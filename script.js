@@ -65,7 +65,8 @@ window.onload = async function() {
       supabase.auth.onAuthStateChange((event, session) => {
         currentUser = session?.user ?? null;
         updateAuthUI();
-        if (currentUser) loadFlashcardsFromDB();
+        // Always try to load from DB when Supabase client exists; RLS will enforce visibility.
+        if (supabase) loadFlashcardsFromDB();
         else loadFlashcardsFromLocal();
       });
 
@@ -74,7 +75,9 @@ window.onload = async function() {
         await loadFlashcardsFromDB();
       } else {
         updateAuthUI();
-        loadFlashcardsFromLocal();
+        // For anonymous users, still attempt DB load so admin-owned cards (per RLS) are visible.
+        if (supabase) await loadFlashcardsFromDB();
+        else loadFlashcardsFromLocal();
       }
     } else {
       console.warn('Supabase client not available, falling back to localStorage');
