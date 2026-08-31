@@ -16,6 +16,31 @@ document.addEventListener('DOMContentLoaded', () => {
 let flashcards = [];
 let currentIndex = 0;
 let isFlipped = false;
+// displayOrder is an array of indices (shuffled) used for sequential browsing (next/prev)
+let displayOrder = null;
+
+// Helper: Fisher-Yates shuffle
+function shuffleArray(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function regenerateDisplayOrder(preserveLogicalIndex) {
+  // preserveLogicalIndex: an index in flashcards (logical index) to keep as the current displayed card
+  if (!flashcards || flashcards.length === 0) { displayOrder = null; currentIndex = 0; return; }
+  const indices = flashcards.map((_, i) => i);
+  displayOrder = shuffleArray(indices);
+  if (typeof preserveLogicalIndex === 'number') {
+    const pos = displayOrder.indexOf(preserveLogicalIndex);
+    currentIndex = pos >= 0 ? pos : 0;
+  } else {
+    currentIndex = 0;
+  }
+}
 
 // Helper: ensure Spanish sentences display with an appropriate opening inverted punctuation
 // Adds '¿' when the displayed string ends with '?' and doesn't already start with '¿'
@@ -259,6 +284,8 @@ async function signOut() {
 function loadFlashcardsFromLocal() {
   flashcards = JSON.parse(localStorage.getItem('myFlashcards')) || [];
   currentIndex = 0;
+  // Build or reset display order when loading local data
+  regenerateDisplayOrder();
   displayCard();
 }
 
@@ -290,7 +317,8 @@ async function loadFlashcardsFromDB() {
           .order('created_at', { ascending: true });
         if (error) throw error;
         flashcards = (data || []).map(r => ({ id: r.id, english: r.english, spanish: r.spanish }));
-        currentIndex = 0;
+        // build displayOrder (shuffled) and show first card
+        regenerateDisplayOrder();
         displayCard();
         return;
       }
@@ -311,7 +339,8 @@ async function loadFlashcardsFromDB() {
         .order('created_at', { ascending: true });
       if (error) throw error;
       flashcards = (data || []).map(r => ({ id: r.id, english: r.english, spanish: r.spanish }));
-      currentIndex = 0;
+      // build displayOrder (shuffled) and show first card
+      regenerateDisplayOrder();
       displayCard();
       return;
     }
@@ -342,7 +371,8 @@ async function loadFlashcardsFromDB() {
 
     const data = result.data || [];
     flashcards = data.map(r => ({ id: r.id, english: r.english, spanish: r.spanish }));
-    currentIndex = 0;
+    // build display order and show first card
+    regenerateDisplayOrder();
     displayCard();
   } catch (error) {
     console.error('load error', error);
@@ -367,7 +397,8 @@ async function addCard() {
 
   document.getElementById('englishInput').value = '';
   document.getElementById('spanishInput').value = '';
-  currentIndex = flashcards.length - 1;
+  // After inserting, regenerate displayOrder and position to the newly added logical index
+  regenerateDisplayOrder(flashcards.length - 1);
   displayCard();
 }
 
@@ -381,13 +412,24 @@ async function deleteCard() {
     const { error } = await supabase.from('flashcards').delete().eq('id', card.id);
     if (error) { console.error('delete error', error); return; }
     // remove locally
-    flashcards.splice(currentIndex, 1);
+    // currentIndex here is position within displayOrder; map to logical index if needed
+    const logicalIndex = (displayOrder && Array.isArray(displayOrder) && displayOrder.length === flashcards.length)
+      ? displayOrder[currentIndex]
+      : currentIndex;
+    // remove by logical index
+    flashcards.splice(logicalIndex, 1);
   } else {
     // local fallback
-    flashcards.splice(currentIndex, 1);
+    const logicalIndex = (displayOrder && Array.isArray(displayOrder) && displayOrder.length === flashcards.length)
+      ? displayOrder[currentIndex]
+      : currentIndex;
+    flashcards.splice(logicalIndex, 1);
     saveFlashcardsToLocal();
   }
 
+  if (flashcards.length === 0) { displayOrder = null; currentIndex = 0; displayCard(); return; }
+  // rebuild displayOrder after a deletion; keep currentIndex within bounds
+  regenerateDisplayOrder();
   if (currentIndex >= flashcards.length) currentIndex = Math.max(0, flashcards.length - 1);
   displayCard();
 }
@@ -424,6 +466,9 @@ async function deleteByEnglish() {
     if (idx === -1) { if (msgEl) { msgEl.innerText = 'No matching local card found.'; msgEl.style.display = 'block'; } return; }
     flashcards.splice(idx, 1);
     saveFlashcardsToLocal();
+    if (flashcards.length === 0) { displayOrder = null; currentIndex = 0; displayCard(); if (msgEl) { msgEl.innerText = 'Deleted local card.'; msgEl.style.display = 'block'; msgEl.style.color = 'green'; } return; }
+    // rebuild displayOrder after deletion
+    regenerateDisplayOrder();
     currentIndex = Math.min(currentIndex, flashcards.length - 1);
     displayCard();
     if (msgEl) { msgEl.innerText = 'Deleted local card.'; msgEl.style.display = 'block'; msgEl.style.color = 'green'; }
@@ -441,14 +486,20 @@ function displayCard() {
   isFlipped = false;
   document.getElementById('cardInner').classList.remove('flipped');
 
-  if (flashcards.length === 0) {
+  if (!flashcards || flashcards.length === 0) {
     document.getElementById('cardFront').innerText = 'Add a word to start';
     document.getElementById('cardBack').innerText = '-';
     return;
   }
 
-  document.getElementById('cardFront').innerText = flashcards[currentIndex].english;
-  document.getElementById('cardBack').innerText = ensureSpanishQuestionMark(flashcards[currentIndex].spanish);
+  // map currentIndex (position in displayOrder) to the logical flashcards array index
+  const logicalIndex = (displayOrder && Array.isArray(displayOrder) && displayOrder.length === flashcards.length)
+    ? displayOrder[currentIndex]
+    : currentIndex;
+
+  const card = flashcards[logicalIndex] || flashcards[0];
+  document.getElementById('cardFront').innerText = card.english;
+  document.getElementById('cardBack').innerText = ensureSpanishQuestionMark(card.spanish);
 }
 
 function nextCard() {
