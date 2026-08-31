@@ -292,41 +292,45 @@ button { -webkit-tap-highlight-color: rgba(0,0,0,0.06); touch-action: manipulati
 
 /* Target common iPhone widths & similar phones */
 @media only screen and (max-width: 428px), only screen and (max-device-width: 812px) {
-  /* stronger mobile styles: bigger type, higher contrast, less top whitespace */
-  body { align-items: flex-start; font-size: 18px; background-color: #eef0f5; }
-  .container { width: 100%; margin: 6px auto; padding: 6px 12px; margin-top: 10px; }
-  .login-box { width: 100%; padding: 12px; box-shadow: 0 14px 40px rgba(0,0,0,0.14); background: #fff; }
+  /* stronger mobile styles: larger base font, higher contrast, less top whitespace */
+  html, body { font-size: 20px; }
+  body { align-items: flex-start; background-color: #eef0f5; }
+  .container { width: 100%; margin: 6px auto; padding: 6px 12px; margin-top: 8px; }
+  .login-box { width: 100%; padding: 12px; box-shadow: 0 12px 30px rgba(0,0,0,0.12); background: #fff; }
   h1 { font-size: 26px; margin-bottom: 6px; }
 
-  /* Make the flashcard much larger and more readable */
+  /* Flashcard bigger and more readable */
   .flashcard { height: 360px; margin: 6px 0 16px; max-width: 94%; }
   .card-front, .card-back {
-    font-size: 34px;
-    line-height: 1.15;
+    font-size: 36px;
+    line-height: 1.12;
     border-radius: 14px;
-    padding: 20px;
-    box-shadow: 0 18px 48px rgba(8,8,20,0.16);
+    padding: 18px;
+    box-shadow: 0 18px 48px rgba(8,8,20,0.18);
   }
 
   /* Inputs and buttons: larger tap targets and higher contrast */
   .form-box { flex-direction: column; gap: 12px; align-items: stretch; }
-  .form-box input, #deleteEnglishInput {
-    width: 100%; font-size: 18px; padding: 16px; border-radius: 12px; background: #fff; border: 1px solid #cfd6e3;
-  }
-  .form-box button, #btnDeleteByEnglish, #btnDelete, .mode-box button, .nav-box button {
-    width: 100%; padding: 14px 18px; font-size: 18px; border-radius: 12px; box-shadow: 0 10px 0 rgba(0,0,0,0.12), 0 6px 18px rgba(0,0,0,0.10);
-  }
+  .form-box input, #deleteEnglishInput { width: 100%; font-size: 18px; padding: 16px; border-radius: 12px; background: #fff; border: 1px solid #cfd6e3; }
 
-  /* stronger, saturated colors for action buttons */
-  .form-box button { background-color: #1e7e34; }
-  #btnDeleteByEnglish { background-color: #1e7e34; }
-  #btnDelete { background-color: #c82333; color: #fff; }
-  .nav-box button { background-color: #fff; border: 1px solid #d2d6dc; color: #111; }
+  /* Constrain admin/edit buttons so they don't span edge-to-edge */
+  .form-box button, #btnDeleteByEnglish, #btnDelete { width: auto; max-width: 420px; margin: 8px auto; padding: 14px 20px; font-size: 18px; border-radius: 12px; display: block; box-shadow: 0 8px 18px rgba(0,0,0,0.10); }
+
+  /* Keep other nav/mode buttons readable but not oversized */
+  .mode-box button, .nav-box button { padding: 10px 14px; font-size: 16px; }
+
+  /* Ensure sign-in / sign-out button at top-right is visible and usable */
+  #adminSignInBtn { position: fixed; top: env(safe-area-inset-top,12px); right: 12px; z-index: 220; font-size: 15px; padding: 8px 12px; border-radius: 10px; background: rgba(255,255,255,0.96); box-shadow: 0 6px 18px rgba(0,0,0,0.12); }
+  #btnSignIn, #btnSignUp, #btnSignOut { font-size: 15px; padding: 10px 12px; }
 
   /* Make admin delete centered and narrower on tiny screens */
-  #btnDelete { max-width: 420px; margin: 0 auto 10px; display: block; }
+  #btnDelete { max-width: 420px; margin: 6px auto 12px; display: block; }
 
-  .nav-box { flex-wrap: wrap; gap: 12px; padding-bottom: 12px; justify-content: center; }
+  .nav-box { flex-wrap: wrap; gap: 10px; padding-bottom: 12px; justify-content: center; }
+
+  /* increase contrast for small screens */
+  .card-front { color: #060606; }
+  .card-back { color: #fff; }
 }
 
 /* Larger high-density devices (iPhone Plus/Max) tweaks */
