@@ -377,6 +377,12 @@ function displayCard() {
 
 function nextCard() {
   if (flashcards.length > 0) {
+    // Ensure current card shows English (don't reveal Spanish of the next card)
+    isFlipped = false;
+    const cardInner = document.getElementById('cardInner');
+    if (cardInner) cardInner.classList.remove('flipped');
+
+    // Advance to next card and display its front (English)
     currentIndex = (currentIndex + 1) % flashcards.length;
     displayCard();
   }
@@ -384,6 +390,11 @@ function nextCard() {
 
 function prevCard() {
   if (flashcards.length > 0) {
+    // Ensure current card shows English before moving back
+    isFlipped = false;
+    const cardInner = document.getElementById('cardInner');
+    if (cardInner) cardInner.classList.remove('flipped');
+
     currentIndex = (currentIndex - 1 + flashcards.length) % flashcards.length;
     displayCard();
   }
@@ -526,8 +537,8 @@ function wireUi() {
   if (btnDeleteByEnglish) btnDeleteByEnglish.addEventListener('click', () => { try { deleteByEnglish(); } catch(e){console.error(e);} });
   if (modeEdit) modeEdit.addEventListener('click', () => setMode('edit'));
   if (modePractice) modePractice.addEventListener('click', () => setMode('practice'));
-  if (prevBtn) prevBtn.addEventListener('click', () => prevCard());
-  if (nextBtn) nextBtn.addEventListener('click', () => nextCard());
+  if (prevBtn) prevBtn.addEventListener('click', (e) => { e.stopPropagation(); try { prevCard(); } catch(err){console.error(err);} });
+  if (nextBtn) nextBtn.addEventListener('click', (e) => { e.stopPropagation(); try { nextCard(); } catch(err){console.error(err);} });
 
   // practice controls
   const submitBtn = document.getElementById('practiceSubmitBtn');
