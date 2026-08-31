@@ -31,12 +31,16 @@
     <div style="margin-top:12px; font-style:italic; font-size:14px; color:#444; text-align:center;">Click the card to reveal the Spanish, advance or go back using arrow buttons</div>
     <!-- Flashcard Display (always visible) -->
     <div class="flashcard">
-        <button id="prevBtn" class="nav-arrow left" aria-label="Previous card">◀</button>
         <div class="card-inner" id="cardInner">
             <div class="card-front" id="cardFront">Click Add to start</div>
             <div class="card-back" id="cardBack">-</div>
         </div>
-        <button id="nextBtn" class="nav-arrow right" aria-label="Next card">▶</button>
+    </div>
+
+    <!-- Bottom navigation: arrows moved below the flashcard to avoid overlapping content -->
+    <div class="nav-bottom">
+      <button id="prevBtn" class="nav-arrow bottom" aria-label="Previous card">◀</button>
+      <button id="nextBtn" class="nav-arrow bottom" aria-label="Next card">▶</button>
     </div>
 
     <!-- Navigation (legacy container kept for layout fallback; hidden visually) -->
