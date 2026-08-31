@@ -553,9 +553,42 @@ function wireUi() {
   if (card) card.addEventListener('click', () => flipCard());
 }
 
+// Responsive JS tweaks for arrow buttons to bypass stubborn caching on some devices
+function applyNavArrowStyles() {
+  const arrows = document.querySelectorAll('.nav-arrow');
+  if (!arrows || arrows.length === 0) return;
+  const isSmall = window.innerWidth <= 428;
+  arrows.forEach(a => {
+    if (isSmall) {
+      a.style.width = '52px';
+      a.style.height = '52px';
+      a.style.fontSize = '22px';
+      a.style.left = a.classList.contains('left') ? '8px' : a.style.left;
+      a.style.right = a.classList.contains('right') ? '8px' : a.style.right;
+      a.style.boxShadow = '0 6px 14px rgba(10,12,20,0.10)';
+      a.style.background = 'rgba(255,255,255,0.98)';
+      a.style.opacity = '0.98';
+    } else {
+      a.style.width = '44px';
+      a.style.height = '44px';
+      a.style.fontSize = '20px';
+      a.style.left = a.classList.contains('left') ? '12px' : a.style.left;
+      a.style.right = a.classList.contains('right') ? '12px' : a.style.right;
+      a.style.boxShadow = '0 10px 26px rgba(8,12,20,0.12)';
+      a.style.background = 'linear-gradient(180deg, #ffffff 0%, #eef1f7 60%)';
+      a.style.opacity = '1';
+    }
+  });
+}
+
 // call wiring after definitions
 window.addEventListener('load', () => {
   try { wireUi(); } catch (e) { console.error('wireUi failed', e); }
+  try { applyNavArrowStyles(); } catch(e) { /* ignore */ }
+});
+
+window.addEventListener('resize', () => {
+  try { applyNavArrowStyles(); } catch(e) { /* ignore */ }
 });
 
 // Also expose some helpers for console debugging
