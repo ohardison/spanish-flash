@@ -30,3 +30,14 @@ CREATE POLICY IF NOT EXISTS "owners_or_admins_manage_flashcards" ON public.flash
 
 -- Note: If you already have owner-only policies, they can remain; this policy
 -- will allow admins (entries in public.admins) the same access. Run in SQL editor.
+
+-- 4) Public read policy for admin-owned flashcards: allow anonymous (and any) users
+-- to SELECT rows that belong to a user listed in public.admins. This exposes only
+-- admin-owned flashcards to the public (useful for a landing/demo set).
+CREATE POLICY IF NOT EXISTS "public_select_admin_flashcards" ON public.flashcards
+  FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.admins a WHERE a.user_id = public.flashcards.user_id
+    )
+  );

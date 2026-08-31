@@ -263,13 +263,27 @@ function saveFlashcardsToLocal() { localStorage.setItem('myFlashcards', JSON.str
 
 // Supabase DB functions
 async function loadFlashcardsFromDB() {
-  if (!supabase || !currentUser) { loadFlashcardsFromLocal(); return; }
-  const { data, error } = await supabase
+  if (!supabase) { loadFlashcardsFromLocal(); return; }
+
+  // Build a query that returns either:
+  // - the current user's flashcards when signed in
+  // - or public/admin flashcards when not signed in (RLS policy enforces this)
+  let query = supabase
     .from('flashcards')
     .select('id, english, spanish, created_at')
-    .eq('user_id', currentUser.id)
     .order('created_at', { ascending: true });
-  if (error) { console.error('load error', error); loadFlashcardsFromLocal(); return; }
+
+  if (currentUser) {
+    query = query.eq('user_id', currentUser.id);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    console.error('load error', error);
+    loadFlashcardsFromLocal();
+    return;
+  }
+
   flashcards = data.map(r => ({ id: r.id, english: r.english, spanish: r.spanish }));
   currentIndex = 0;
   displayCard();
