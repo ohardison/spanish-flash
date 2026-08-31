@@ -82,6 +82,59 @@ h1 {
   perspective: 1000px;
   cursor: pointer;
   margin: 18px 0 42px 0; /* increased bottom space */
+  position: relative; /* enable absolute-positioned nav arrows */
+}
+
+/* Arrow navigation positioned mid-left and mid-right of the flashcard */
+.nav-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,0,0,0.08);
+  background: linear-gradient(180deg, #ffffff 0%, #eef1f7 60%);
+  color: #111;
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 14px 34px rgba(8,12,30,0.18), 0 4px 10px rgba(0,0,0,0.06) inset;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+  z-index: 80; /* ensure arrows sit above card */
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
+/* Subtle highlight sheen */
+.nav-arrow::before {
+  content: '';
+  position: absolute;
+  left: 6%;
+  top: 6%;
+  right: 6%;
+  bottom: 50%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.6), rgba(255,255,255,0) 50%);
+  pointer-events: none;
+}
+
+/* position slightly inside card to avoid being clipped by chrome */
+.nav-arrow.left { left: 12px; }
+.nav-arrow.right { right: 12px; }
+
+.nav-arrow:active { transform: translateY(-44%) scale(0.96); box-shadow: 0 6px 16px rgba(8,12,30,0.14), 0 2px 6px rgba(0,0,0,0.05) inset; filter: brightness(0.98); }
+
+/* make sure card sits under arrows */
+.card-inner, .card-front, .card-back { z-index: 1; position: relative; }
+
+/* On small screens, keep arrows inside card edges and increase size for tap targets */
+@media only screen and (max-width: 428px) {
+  .nav-arrow { width: 72px; height: 72px; font-size: 30px; }
+  .nav-arrow.left { left: 10px; }
+  .nav-arrow.right { right: 10px; }
 }
 
 .nav-box {

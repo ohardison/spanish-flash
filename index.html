@@ -27,18 +27,21 @@
 <div class="container" style="display: none;">
 
     <h2>Flashcards</h2>
+    <div style="margin-top:12px; font-style:italic; font-size:14px; color:#444; text-align:center;">Click the card to reveal the Spanish, advance or go back using arrow buttons</div>
     <!-- Flashcard Display (always visible) -->
     <div class="flashcard">
+        <button id="prevBtn" class="nav-arrow left" aria-label="Previous card">◀</button>
         <div class="card-inner" id="cardInner">
             <div class="card-front" id="cardFront">Click Add to start</div>
             <div class="card-back" id="cardBack">-</div>
         </div>
+        <button id="nextBtn" class="nav-arrow right" aria-label="Next card">▶</button>
     </div>
 
-    <!-- Navigation -->
-    <div class="nav-box">
-        <button id="prevBtn">Previous</button>
-        <button id="nextBtn">Next</button>
+    <!-- Navigation (legacy container kept for layout fallback; hidden visually) -->
+    <div class="nav-box" aria-hidden="true" style="height:0; overflow:hidden; visibility:hidden;">
+        <button id="prevBtn-fallback" style="display:none">Previous</button>
+        <button id="nextBtn-fallback" style="display:none">Next</button>
     </div>
 
     <!-- Intro line for admins (only visible to admins) -->
