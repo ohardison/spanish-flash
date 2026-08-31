@@ -191,15 +191,23 @@ h1 {
 /* Bottom navigation container */
 .nav-bottom {
   display: flex;
-  justify-content: center;
+  justify-content: space-between; /* place arrows at left and right */
   align-items: center;
   gap: 30px;
   margin-top: 12px;
   margin-bottom: 8px;
+  width: calc(100% - 48px);
+  max-width: 640px; /* match container max-width so arrows line up with card edges */
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 12px; /* give some breathing room */
+  z-index: 20;
 }
 
+.nav-bottom .nav-arrow { flex: 0 0 auto; }
+
 @media (max-width: 480px) {
-  .nav-bottom { gap: 20px; }
+  .nav-bottom { gap: 20px; max-width: 92%; padding: 0 8px; }
   .nav-arrow { width: 64px; height: 64px; font-size: 22px; border-radius: 14px; }
 }
 
