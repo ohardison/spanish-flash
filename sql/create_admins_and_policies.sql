@@ -13,7 +13,7 @@ ALTER TABLE IF EXISTS public.flashcards ENABLE ROW LEVEL SECURITY;
 -- 3) Policy: allow owners or admins to manage flashcards
 -- This policy allows authenticated users to act on their own rows OR users
 -- listed in public.admins to act on any row.
-CREATE POLICY IF NOT EXISTS "owners_or_admins_manage_flashcards" ON public.flashcards
+CREATE POLICY "owners_or_admins_manage_flashcards" ON public.flashcards
   FOR ALL
   USING (
     auth.uid() = user_id
@@ -34,10 +34,15 @@ CREATE POLICY IF NOT EXISTS "owners_or_admins_manage_flashcards" ON public.flash
 -- 4) Public read policy for admin-owned flashcards: allow anonymous (and any) users
 -- to SELECT rows that belong to a user listed in public.admins. This exposes only
 -- admin-owned flashcards to the public (useful for a landing/demo set).
-CREATE POLICY IF NOT EXISTS "public_select_admin_flashcards" ON public.flashcards
+CREATE POLICY "public_select_admin_flashcards" ON public.flashcards
   FOR SELECT
   USING (
     EXISTS (
       SELECT 1 FROM public.admins a WHERE a.user_id = public.flashcards.user_id
     )
   );
+
+-- Allow anonymous/public clients to read the admins table (only user_id column)
+CREATE POLICY "public_select_admins" ON public.admins
+  FOR SELECT
+  USING (true);
