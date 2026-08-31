@@ -65,23 +65,21 @@ window.onload = async function() {
       supabase.auth.onAuthStateChange((event, session) => {
         currentUser = session?.user ?? null;
         updateAuthUI();
-        // Always try to load from DB when Supabase client exists; RLS will enforce visibility.
-        if (supabase) loadFlashcardsFromDB();
-        else loadFlashcardsFromLocal();
+        // Only load DB data when a user is signed in
+        if (currentUser) loadFlashcardsFromDB();
       });
 
       if (currentUser) {
         updateAuthUI();
         await loadFlashcardsFromDB();
       } else {
+        // Not signed in: show login screen only (no anonymous access)
         updateAuthUI();
-        // For anonymous users, still attempt DB load so admin-owned cards (per RLS) are visible.
-        if (supabase) await loadFlashcardsFromDB();
-        else loadFlashcardsFromLocal();
       }
     } else {
-      console.warn('Supabase client not available, falling back to localStorage');
-      loadFlashcardsFromLocal();
+      console.warn('Supabase client not available');
+      // Show login UI so users must authenticate before using the app
+      updateAuthUI();
     }
   } catch (err) {
     // no supabase configured — use localStorage fallback
@@ -93,7 +91,6 @@ window.onload = async function() {
 function updateAuthUI() {
   const loginBox = document.getElementById('loginBox');
   const userInfo = document.getElementById('userInfo');
-  const userEmail = document.getElementById('userEmail');
   const editArea = document.getElementById('editArea');
   const deleteBtn = document.getElementById('btnDelete');
   const addBtn = document.getElementById('btnAdd');
@@ -109,8 +106,9 @@ function updateAuthUI() {
   if (currentUser) {
     if (loginBox) loginBox.style.display = 'none';
     if (userInfo) userInfo.style.display = 'block';
-    if (userEmail) userEmail.innerText = currentUser.email;
     if (containerEl) containerEl.style.display = 'block';
+    // hide header fallback sign-out when the main userInfo box is visible
+    const btnTop = document.getElementById('btnSignOutTop'); if (btnTop) btnTop.style.display = 'none';
 
     // Only show edit controls (add/list/delete) to the admin account. Admin always sees the add form below flashcards.
     if (editArea) {
@@ -121,42 +119,24 @@ function updateAuthUI() {
     if (adminIntro) adminIntro.style.display = isAdmin ? 'block' : 'none';
     if (adminMsg) { adminMsg.style.display = 'none'; adminMsg.innerText = ''; adminMsg.style.color='red'; }
 
-    // Set adminSignInBtn to act as Sign out when logged in
-    if (adminSignInBtn) {
-      adminSignInBtn.textContent = 'Sign out';
-      adminSignInBtn.onclick = async () => {
-        try {
-          await signOut();
-        } catch (e) { console.error('signOut failed', e); }
-      };
-    }
 
     // If a non-admin ended up in edit mode, switch them to practice for safety
     if (!isAdmin && mode === 'edit') setMode('practice');
   } else {
-    // Not signed in: show flashcards landing page using localStorage fallback
-    if (loginBox) loginBox.style.display = 'none';
+    // Not signed in: require login — hide the app and show login box
+    if (loginBox) loginBox.style.display = 'block';
     if (userInfo) userInfo.style.display = 'none';
-    if (containerEl) containerEl.style.display = 'block';
+    if (containerEl) containerEl.style.display = 'none';
 
-    // Hide edit controls for anonymous users
+    // Hide edit controls explicitly
     if (editArea) editArea.style.display = 'none';
     if (deleteBtn) deleteBtn.style.display = 'none';
     if (addBtn) addBtn.style.display = 'none';
     if (adminIntro) adminIntro.style.display = 'none';
     if (adminMsg) { adminMsg.style.display = 'none'; adminMsg.innerText = ''; }
 
-    // Set adminSignInBtn to open login box when not signed in
-    if (adminSignInBtn) {
-      adminSignInBtn.textContent = 'Admin sign in';
-      adminSignInBtn.onclick = () => {
-        const loginBoxEl = document.getElementById('loginBox');
-        if (!loginBoxEl) return;
-        loginBoxEl.style.display = loginBoxEl.style.display === 'block' ? 'none' : 'block';
-      };
-    }
 
-    // Ensure anonymous users land in practice mode
+    // Ensure we are not in edit mode
     if (mode === 'edit') setMode('practice');
   }
 
@@ -253,7 +233,7 @@ async function supabaseSignIn() {
 }
 
 async function signOut() {
-  if (!supabase) return; await supabase.auth.signOut(); currentUser = null; updateAuthUI(); loadFlashcardsFromLocal(); }
+  currentUser = null; updateAuthUI(); }
 
 // LocalStorage fallback
 function loadFlashcardsFromLocal() {
@@ -266,30 +246,89 @@ function saveFlashcardsToLocal() { localStorage.setItem('myFlashcards', JSON.str
 
 // Supabase DB functions
 async function loadFlashcardsFromDB() {
-  if (!supabase) { loadFlashcardsFromLocal(); return; }
+  if (!supabase) { console.warn('Supabase client not available — cannot load DB flashcards.'); updateAuthUI(); return; }
 
-  // Build a query that returns either:
-  // - the current user's flashcards when signed in
-  // - or public/admin flashcards when not signed in (RLS policy enforces this)
-  let query = supabase
-    .from('flashcards')
-    .select('id, english, spanish, created_at')
-    .order('created_at', { ascending: true });
+  try {
+    // If signed in, determine admin status and load appropriate cards
+    if (currentUser) {
+      // Fetch admin IDs (requires SELECT on public.admins allowed)
+      let adminIds = [];
+      try {
+        const { data: admins, error: adminErr } = await supabase.from('admins').select('user_id');
+        if (!adminErr && admins && admins.length > 0) adminIds = admins.map(a => a.user_id).filter(Boolean);
+      } catch (e) {
+        console.debug('could not fetch admins list', e);
+      }
 
-  if (currentUser) {
-    query = query.eq('user_id', currentUser.id);
-  }
+      const isAdmin = adminIds.includes(currentUser.id);
 
-  const { data, error } = await query;
-  if (error) {
+      if (isAdmin) {
+        // Admin: load all flashcards
+        const { data, error } = await supabase
+          .from('flashcards')
+          .select('id, english, spanish, created_at')
+          .order('created_at', { ascending: true });
+        if (error) throw error;
+        flashcards = (data || []).map(r => ({ id: r.id, english: r.english, spanish: r.spanish }));
+        currentIndex = 0;
+        displayCard();
+        return;
+      }
+
+      // Non-admin user: only show admin-owned flashcards (admins are the only creators)
+      if (adminIds.length === 0) {
+        // No admins recorded — nothing to show
+        flashcards = [];
+        currentIndex = 0;
+        displayCard();
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('flashcards')
+        .select('id, english, spanish, created_at')
+        .in('user_id', adminIds)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      flashcards = (data || []).map(r => ({ id: r.id, english: r.english, spanish: r.spanish }));
+      currentIndex = 0;
+      displayCard();
+      return;
+    }
+
+    // Anonymous user: try to load admin-owned flashcards explicitly.
+    // 1) Try to fetch admin user_ids (requires SELECT on public.admins allowed)
+    let adminIds = [];
+    try {
+      const { data: admins, error: adminErr } = await supabase.from('admins').select('user_id');
+      if (!adminErr && admins && admins.length > 0) {
+        adminIds = admins.map(a => a.user_id).filter(Boolean);
+      }
+    } catch (e) {
+      console.debug('could not fetch admins list', e);
+    }
+
+    // 2) If we got adminIds, query flashcards for those ids; otherwise, fall back to an unrestricted select (RLS will filter server-side)
+    let result;
+    if (adminIds.length > 0) {
+      result = await supabase.from('flashcards').select('id, english, spanish, created_at').in('user_id', adminIds).order('created_at', { ascending: true });
+    } else {
+      result = await supabase.from('flashcards').select('id, english, spanish, created_at').order('created_at', { ascending: true });
+    }
+
+    if (result.error) {
+      throw result.error;
+    }
+
+    const data = result.data || [];
+    flashcards = data.map(r => ({ id: r.id, english: r.english, spanish: r.spanish }));
+    currentIndex = 0;
+    displayCard();
+  } catch (error) {
     console.error('load error', error);
+    // if DB fails, fallback to local storage so UI still works offline
     loadFlashcardsFromLocal();
-    return;
   }
-
-  flashcards = data.map(r => ({ id: r.id, english: r.english, spanish: r.spanish }));
-  currentIndex = 0;
-  displayCard();
 }
 
 async function addCard() {
@@ -531,6 +570,7 @@ function wireUi() {
   const btnSignUp = document.getElementById('btnSignUp');
   const btnSignIn = document.getElementById('btnSignIn');
   const btnSignOut = document.getElementById('btnSignOut');
+  const btnSignOutTop = document.getElementById('btnSignOutTop');
   const addBtn = document.getElementById('btnAdd') || document.querySelector('.form-box button');
   const modeEdit = document.getElementById('modeEditBtn');
   const modePractice = document.getElementById('modePracticeBtn');
@@ -540,12 +580,11 @@ function wireUi() {
   if (btnSignUp) btnSignUp.addEventListener('click', () => { try { supabaseSignUp(); } catch(e){console.error(e);} });
   if (btnSignIn) btnSignIn.addEventListener('click', () => { try { supabaseSignIn(); } catch(e){console.error(e);} });
   if (btnSignOut) btnSignOut.addEventListener('click', () => { try { signOut(); } catch(e){console.error(e);} });
+  if (btnSignOutTop) btnSignOutTop.addEventListener('click', () => { try { signOut(); } catch(e){console.error(e);} });
 
   // admin sign-in button exists but behavior is controlled by updateAuthUI() based on session state
-  const adminSignInBtn = document.getElementById('adminSignInBtn');
   const adminIntro = document.getElementById('adminIntro');
   if (adminIntro) adminIntro.style.display = 'none'; // ensure hidden at startup
-  // Do not bind click here; updateAuthUI will set the button text and handler depending on auth state
   
   if (addBtn) addBtn.addEventListener('click', () => { try { addCard(); } catch(e){console.error(e);} });
   const deleteBtn = document.getElementById('btnDelete');

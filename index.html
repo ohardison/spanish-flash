@@ -18,17 +18,16 @@
       <button id="btnSignUp">Sign up</button>
     </div>
     <p id="loginMsg" style="color: red; display: none;"></p>
-    <div id="userInfo" style="display:none; margin-top:8px;">
-      <span id="userEmail"></span>
-      <button id="btnSignOut" style="margin-left:8px;">Sign out</button>
-    </div>
 </div>
 
-<button id="adminSignInBtn" style="position:fixed; top:8px; right:8px; z-index:50;">Admin sign in</button>
+<!-- User info (visible when signed in) placed outside loginBox so it isn't hidden when loginBox is closed -->
+<div id="userInfo" style="position:fixed; top:12px; right:12px; z-index:200; display:none; background: rgba(255,255,255,0.95); padding:6px 10px; border-radius:8px; box-shadow: 0 6px 18px rgba(0,0,0,0.08);">
+  <button id="btnSignOut" style="margin-left:8px;">Sign out</button>
+</div>
 
 <div class="container" style="display: none;">
 
-    <h2>Flashcards</h2>
+    <h2>Flashcards <button id="btnSignOutTop" style="display:none; margin-left:12px; font-size:14px; padding:6px 10px; border-radius:8px;">Sign out</button></h2>
     <div style="margin-top:12px; font-style:italic; font-size:14px; color:#444; text-align:center;">Click the card to reveal the Spanish, advance or go back using arrow buttons</div>
     <!-- Flashcard Display (always visible) -->
     <div class="flashcard">

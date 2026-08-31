@@ -3,4 +3,4 @@ node_modules/
 create_env.js
 .idea/
 .scripts/
-
+supabase-config.js
