@@ -17,6 +17,26 @@ let flashcards = [];
 let currentIndex = 0;
 let isFlipped = false;
 
+// Helper: ensure Spanish sentences display with an appropriate opening inverted punctuation
+// Adds '¿' when the displayed string ends with '?' and doesn't already start with '¿'
+// Adds '¡' when the displayed string ends with '!' and doesn't already start with '¡'
+function ensureSpanishQuestionMark(s) {
+  if (!s || typeof s !== 'string') return s;
+  const t = s.trim();
+  // Match trailing punctuation like '?!' or '!!' etc.
+  const m = t.match(/([!?]+)\s*$/);
+  if (m) {
+    const punctSeq = m[1];
+    const last = punctSeq[punctSeq.length - 1];
+    if (last === '!') {
+      if (!t.startsWith('¡')) return '¡' + t;
+    } else if (last === '?') {
+      if (!t.startsWith('¿')) return '¿' + t;
+    }
+  }
+  return t;
+}
+
 // Mode & practice state
 let mode = 'practice'; // 'edit' or 'practice'
 let practiceOrder = [];
@@ -428,7 +448,7 @@ function displayCard() {
   }
 
   document.getElementById('cardFront').innerText = flashcards[currentIndex].english;
-  document.getElementById('cardBack').innerText = flashcards[currentIndex].spanish;
+  document.getElementById('cardBack').innerText = ensureSpanishQuestionMark(flashcards[currentIndex].spanish);
 }
 
 function nextCard() {
