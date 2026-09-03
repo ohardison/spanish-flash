@@ -27,8 +27,13 @@
 
 <div class="container" style="display: none;">
 
-    <h2>Flashcards <button id="btnSignOutTop" style="display:none; margin-left:12px; font-size:14px; padding:6px 10px; border-radius:8px;">Sign out</button></h2>
-    <div style="margin-top:12px; font-style:italic; font-size:14px; color:#444; text-align:center;">Click the card to reveal the Spanish, advance or go back using arrow buttons</div>
+    <!-- Mode Switchers -->
+    <div class="mode-box">
+      <button id="modeReviewBtn">Review</button>
+      <button id="modeTestBtn">Test</button>
+      <button id="modeEditBtn">Edit</button>
+    </div>
+
     <!-- Flashcard Display (always visible) -->
     <div class="flashcard">
         <div class="card-inner" id="cardInner">
@@ -37,10 +42,30 @@
         </div>
     </div>
 
-    <!-- Bottom navigation: arrows moved below the flashcard to avoid overlapping content -->
-    <div class="nav-bottom">
-      <button id="prevBtn" class="nav-arrow bottom" aria-label="Previous card">◀</button>
-      <button id="nextBtn" class="nav-arrow bottom" aria-label="Next card">▶</button>
+    <!-- Test Stats (always visible when in Test mode) -->
+    <div id="testStats" style="display:none; text-align:center; margin-top: 12px; font-weight:bold;">
+      Score: Yes <span id="yesCount">0</span> / No <span id="noCount">0</span> (<span id="testPercent">0</span>%)
+    </div>
+
+    <!-- Feedback controls (visible only after flip in Test mode) -->
+    <div id="testControls" style="display:none; text-align:center; margin-top: 12px; margin-bottom: 12px;">
+      <div style="font-weight:bold; margin-bottom: 6px;">Got it right?</div>
+      <button id="btnYes" style="background-color:#28a745; color:white; padding:10px 20px; border:none; border-radius:8px;">Yes</button>
+      <button id="btnNo" style="background-color:#dc3545; color:white; padding:10px 20px; border:none; border-radius:8px;">No</button>
+      <button id="btnEnd" style="background-color:#6c757d; color:white; padding:10px 20px; border:none; border-radius:8px; margin-top: 10px;">End Test</button>
+    </div>
+
+    <!-- Report Area (for Test mode) -->
+    <div id="testReport" style="display:none; margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px;">
+      <h3>Missed Phrases</h3>
+      <div id="missedPhrasesList"></div>
+      <button id="btnRestart" style="background-color:#007bff; color:white; padding:10px 20px; border:none; border-radius:8px; margin-top: 15px;">Restart Test</button>
+    </div>
+
+    <!-- Bottom navigation: arrows (for Review/Test modes) -->
+    <div class="nav-bottom" id="navBottom">
+      <button id="prevBtn" class="nav-arrow" aria-label="Previous card">◀</button>
+      <button id="nextBtn" class="nav-arrow" aria-label="Next card">▶</button>
     </div>
 
     <!-- Navigation (legacy container kept for layout fallback; hidden visually) -->
