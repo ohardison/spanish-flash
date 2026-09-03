@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
 let flashcards = [];
 let currentIndex = 0;
 let isFlipped = false;
+let missedCards = []; // Track missed phrases
 // displayOrder is an array of indices (shuffled) used for sequential browsing (next/prev)
 let displayOrder = null;
 
@@ -62,12 +63,10 @@ function ensureSpanishQuestionMark(s) {
   return t;
 }
 
-// Mode & practice state
-let mode = 'practice'; // 'edit' or 'practice'
-let practiceOrder = [];
-let practiceIndex = 0;
-let practiceScore = 0;
-let practiceTotal = 0;
+// Mode & test state
+let mode = 'review'; // 'review', 'test', 'edit'
+let testYesCount = 0;
+let testNoCount = 0;
 
 // Initialize: fetch config from server and setup supabase client if configured
 window.onload = async function() {
@@ -137,6 +136,7 @@ function updateAuthUI() {
   const loginBox = document.getElementById('loginBox');
   const userInfo = document.getElementById('userInfo');
   const editArea = document.getElementById('editArea');
+  const modeEditBtn = document.getElementById('modeEditBtn');
   const deleteBtn = document.getElementById('btnDelete');
   const addBtn = document.getElementById('btnAdd');
   const adminIntro = document.getElementById('adminIntro');
@@ -152,21 +152,16 @@ function updateAuthUI() {
     if (loginBox) loginBox.style.display = 'none';
     if (userInfo) userInfo.style.display = 'block';
     if (containerEl) containerEl.style.display = 'block';
-    // hide header fallback sign-out when the main userInfo box is visible
-    const btnTop = document.getElementById('btnSignOutTop'); if (btnTop) btnTop.style.display = 'none';
 
-    // Only show edit controls (add/list/delete) to the admin account. Admin always sees the add form below flashcards.
-    if (editArea) {
-      editArea.style.display = isAdmin ? 'block' : 'none';
-    }
+    if (editArea) editArea.style.display = isAdmin ? 'block' : 'none';
+    if (modeEditBtn) modeEditBtn.style.display = isAdmin ? 'inline-block' : 'none';
     if (deleteBtn) deleteBtn.style.display = isAdmin ? 'inline-block' : 'none';
     if (addBtn) addBtn.style.display = isAdmin ? 'inline-block' : 'none';
     if (adminIntro) adminIntro.style.display = isAdmin ? 'block' : 'none';
     if (adminMsg) { adminMsg.style.display = 'none'; adminMsg.innerText = ''; adminMsg.style.color='red'; }
 
-
-    // If a non-admin ended up in edit mode, switch them to practice for safety
-    if (!isAdmin && mode === 'edit') setMode('practice');
+    // If a non-admin ended up in edit mode, switch them to review for safety
+    if (!isAdmin && mode === 'edit') setMode('review');
   } else {
     // Not signed in: require login — hide the app and show login box
     if (loginBox) loginBox.style.display = 'block';
@@ -174,6 +169,7 @@ function updateAuthUI() {
     if (containerEl) containerEl.style.display = 'none';
 
     // Hide edit controls explicitly
+    if (modeEditBtn) modeEditBtn.style.display = 'none';
     if (editArea) editArea.style.display = 'none';
     if (deleteBtn) deleteBtn.style.display = 'none';
     if (addBtn) addBtn.style.display = 'none';
@@ -182,10 +178,10 @@ function updateAuthUI() {
 
 
     // Ensure we are not in edit mode
-    if (mode === 'edit') setMode('practice');
+    if (mode === 'edit') setMode('review');
   }
 
-  // Apply the UI mode to ensure practice/edit areas are shown/hidden correctly
+  // Apply the UI mode to ensure areas are shown/hidden correctly
   try { setMode(mode); } catch (e) { /* ignore if not defined yet */ }
 
   // Debug line: show user email and role at bottom-left for troubleshooting
@@ -253,10 +249,13 @@ async function supabaseSignIn() {
   } else {
     console.debug('signIn success', data);
     currentUser = data.user;
+    mode = 'review'; // Ensure a valid default mode on login
 
-    // force-hide login UI and show admin edit area if this user is admin
+    // force-hide login UI and show app container
     const loginBoxEl = document.getElementById('loginBox');
     if (loginBoxEl) loginBoxEl.style.display = 'none';
+    const containerEl = document.querySelector('.container');
+    if (containerEl) containerEl.style.display = 'block';
 
     updateAuthUI();
     // extra safeguard: if admin, explicitly un-hide edit form
@@ -480,11 +479,25 @@ function flipCard() {
   const cardInner = document.getElementById('cardInner');
   isFlipped = !isFlipped;
   cardInner.classList.toggle('flipped', isFlipped);
+  
+  // If in Test mode, update visibility of test controls
+  if (mode === 'test') {
+      const testControlsEl = document.getElementById('testControls');
+      if (testControlsEl) testControlsEl.style.display = isFlipped ? 'block' : 'none';
+  }
 }
 
 function displayCard() {
   isFlipped = false;
   document.getElementById('cardInner').classList.remove('flipped');
+
+  // Reset visibility for test mode
+  if (mode === 'test') {
+      const testControlsEl = document.getElementById('testControls');
+      const navBottomEl = document.getElementById('navBottom');
+      if (testControlsEl) testControlsEl.style.display = 'none';
+      if (navBottomEl) navBottomEl.style.display = 'none'; // Force hidden in test mode
+  }
 
   if (!flashcards || flashcards.length === 0) {
     document.getElementById('cardFront').innerText = 'Add a word to start';
@@ -527,113 +540,113 @@ function prevCard() {
   }
 }
 
+
+// Test mode functions
+function updateTestScore() {
+  const total = testYesCount + testNoCount;
+  const percent = total > 0 ? Math.round((testYesCount / total) * 100) : 0;
+  
+  const yesEl = document.getElementById('yesCount');
+  const noEl = document.getElementById('noCount');
+  const percentEl = document.getElementById('testPercent');
+  
+  if (yesEl) yesEl.innerText = testYesCount;
+  if (noEl) noEl.innerText = testNoCount;
+  if (percentEl) percentEl.innerText = percent;
+}
+
+function registerTestResult(gotItRight) {
+  if (gotItRight) {
+    testYesCount++;
+  } else {
+    testNoCount++;
+    // Add current card to missed list
+    const logicalIndex = (displayOrder && Array.isArray(displayOrder) && displayOrder.length === flashcards.length)
+      ? displayOrder[currentIndex]
+      : currentIndex;
+    missedCards.push(flashcards[logicalIndex]);
+  }
+  updateTestScore();
+  nextCard(); // Automatically advance
+}
+
+function endTest() {
+    const reportArea = document.getElementById('testReport');
+    const listEl = document.getElementById('missedPhrasesList');
+    const testControlsEl = document.getElementById('testControls');
+    
+    if (testControlsEl) testControlsEl.style.display = 'none';
+    if (reportArea) reportArea.style.display = 'block';
+    
+    if (listEl) {
+        listEl.innerHTML = '';
+        if (missedCards.length === 0) {
+            listEl.innerHTML = '<p>No missed phrases!</p>';
+        } else {
+            missedCards.forEach(card => {
+                const div = document.createElement('div');
+                div.style.margin = '5px 0';
+                div.innerText = `${card.english} - ${card.spanish}`;
+                listEl.appendChild(div);
+            });
+        }
+    }
+}
+
+function restartTest() {
+    // Reset test state and switch mode back to test
+    setMode('test');
+}
+
 // MODE handling
 function setMode(newMode) {
   mode = newMode;
+  const modeReviewBtn = document.getElementById('modeReviewBtn');
+  const modeTestBtn = document.getElementById('modeTestBtn');
   const modeEditBtn = document.getElementById('modeEditBtn');
-  const modePracticeBtn = document.getElementById('modePracticeBtn');
-  if (modeEditBtn) modeEditBtn.disabled = mode === 'edit';
-  if (modePracticeBtn) modePracticeBtn.disabled = mode === 'practice';
+  
+  if (modeReviewBtn) modeReviewBtn.classList.toggle('active', mode === 'review');
+  if (modeTestBtn) modeTestBtn.classList.toggle('active', mode === 'test');
+  if (modeEditBtn) modeEditBtn.classList.toggle('active', mode === 'edit');
 
   const editAreaEl = document.getElementById('editArea');
-  const practiceAreaEl = document.getElementById('practiceArea');
+  const testStatsEl = document.getElementById('testStats');
+  const testControlsEl = document.getElementById('testControls');
+  const testReportEl = document.getElementById('testReport');
+  const navBottomEl = document.getElementById('navBottom');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  
   const isAdmin = Boolean(currentUser && currentUser.email && currentUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
 
-  if (mode === 'edit') {
-    // Only allow showing edit area when admin
-    if (editAreaEl) editAreaEl.style.display = isAdmin ? 'block' : 'none';
-    if (practiceAreaEl) practiceAreaEl.style.display = 'none';
-    displayCard();
-  } else {
-    // In non-edit mode, keep edit area visible for admins but hide for non-admins
-    if (editAreaEl) editAreaEl.style.display = isAdmin ? 'block' : 'none';
-    if (practiceAreaEl) {
-      practiceAreaEl.style.display = 'block';
-      startPractice();
-    } else {
-      // No practice UI; just show the flashcard view
-      displayCard();
-    }
-  }
-}
+  // Disable manual navigation in test mode
+  if (prevBtn) prevBtn.disabled = (mode === 'test');
+  if (nextBtn) nextBtn.disabled = (mode === 'test');
 
-// PRACTICE mode functions
-function startPractice() {
-  if (flashcards.length === 0) {
-    document.getElementById('practiceQuestion').innerText = 'No cards available. Switch to Edit Mode to add words.';
-    document.getElementById('practiceAnswer').style.display = 'none';
-    document.getElementById('practiceSubmitBtn').style.display = 'none';
-    document.getElementById('practiceNextBtn').style.display = 'none';
-    document.getElementById('practiceFeedback').innerText = '';
-    document.getElementById('practiceScore').innerText = 'Score: 0 / 0';
-    return;
+  // Reset Test stats if switching into Test mode
+  if (mode === 'test') {
+      testYesCount = 0;
+      testNoCount = 0;
+      missedCards = [];
+      updateTestScore();
   }
 
-  // initialize practice order (shuffle)
-  practiceOrder = flashcards.map((_, i) => i);
-  for (let i = practiceOrder.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [practiceOrder[i], practiceOrder[j]] = [practiceOrder[j], practiceOrder[i]];
+  // Display logic
+  if (editAreaEl) editAreaEl.style.display = (mode === 'edit' && isAdmin) ? 'block' : 'none';
+  if (testStatsEl) testStatsEl.style.display = (mode === 'test') ? 'block' : 'none';
+  if (testControlsEl) testControlsEl.style.display = 'none'; // Ensure hidden until flip
+  if (testReportEl) testReportEl.style.display = 'none'; // Ensure report is hidden
+  
+  // Navigation is hidden if in edit or test mode
+  if (navBottomEl) {
+      if (mode === 'edit' || mode === 'test') {
+          navBottomEl.style.display = 'none';
+      } else {
+          navBottomEl.style.display = 'flex';
+      }
   }
-  practiceIndex = 0;
-  practiceScore = 0;
-  practiceTotal = 0;
-
-  document.getElementById('practiceAnswer').style.display = 'inline-block';
-  document.getElementById('practiceSubmitBtn').style.display = 'inline-block';
-  document.getElementById('practiceNextBtn').style.display = 'none';
-  document.getElementById('practiceFeedback').innerText = '';
-  updatePracticeView();
-}
-
-function updatePracticeView() {
-  const idx = practiceOrder[practiceIndex];
-  document.getElementById('practiceQuestion').innerText = flashcards[idx].english;
-  document.getElementById('practiceAnswer').value = '';
-  document.getElementById('practiceAnswer').focus();
-  document.getElementById('practiceScore').innerText = `Score: ${practiceScore} / ${practiceTotal}`;
-  document.getElementById('practiceNextBtn').style.display = 'none';
-  document.getElementById('practiceSubmitBtn').disabled = false;
-}
-
-function submitPracticeAnswer() {
-  const answer = document.getElementById('practiceAnswer').value.trim();
-  const idx = practiceOrder[practiceIndex];
-  const correct = flashcards[idx].spanish.trim();
-  practiceTotal += 1;
-
-  if (answer.length === 0) {
-    document.getElementById('practiceFeedback').innerText = 'Please enter an answer.';
-    return;
-  }
-
-  if (answer.toLowerCase() === correct.toLowerCase()) {
-    practiceScore += 1;
-    document.getElementById('practiceFeedback').innerText = 'Correct!';
-  } else {
-    document.getElementById('practiceFeedback').innerText = `Incorrect — answer: ${correct}`;
-  }
-
-  document.getElementById('practiceScore').innerText = `Score: ${practiceScore} / ${practiceTotal}`;
-  document.getElementById('practiceSubmitBtn').disabled = true;
-  document.getElementById('practiceNextBtn').style.display = 'inline-block';
-}
-
-function nextPracticeQuestion() {
-  practiceIndex += 1;
-  if (practiceIndex >= practiceOrder.length) {
-    document.getElementById('practiceQuestion').innerText = 'Practice complete!';
-    document.getElementById('practiceAnswer').style.display = 'none';
-    document.getElementById('practiceSubmitBtn').style.display = 'none';
-    document.getElementById('practiceNextBtn').style.display = 'none';
-    document.getElementById('practiceFeedback').innerText = `Final score: ${practiceScore} / ${practiceTotal}`;
-    return;
-  }
-  updatePracticeView();
-}
-
-function endPractice() {
-  setMode('edit');
+  
+  displayCard();
 }
 
 // Wire up UI buttons via event listeners and expose a few helpers
@@ -641,39 +654,46 @@ function wireUi() {
   const btnSignUp = document.getElementById('btnSignUp');
   const btnSignIn = document.getElementById('btnSignIn');
   const btnSignOut = document.getElementById('btnSignOut');
-  const btnSignOutTop = document.getElementById('btnSignOutTop');
-  const addBtn = document.getElementById('btnAdd') || document.querySelector('.form-box button');
+  
+  const modeReview = document.getElementById('modeReviewBtn');
+  const modeTest = document.getElementById('modeTestBtn');
   const modeEdit = document.getElementById('modeEditBtn');
-  const modePractice = document.getElementById('modePracticeBtn');
-  const prevBtn = document.getElementById('prevBtn') || document.querySelector('.nav-box button:nth-child(1)');
-  const nextBtn = document.getElementById('nextBtn') || document.querySelector('.nav-box button:nth-child(2)');
+  
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  
+  const btnYes = document.getElementById('btnYes');
+  const btnNo = document.getElementById('btnNo');
+  const btnEnd = document.getElementById('btnEnd');
+  const btnRestart = document.getElementById('btnRestart');
 
   if (btnSignUp) btnSignUp.addEventListener('click', () => { try { supabaseSignUp(); } catch(e){console.error(e);} });
   if (btnSignIn) btnSignIn.addEventListener('click', () => { try { supabaseSignIn(); } catch(e){console.error(e);} });
   if (btnSignOut) btnSignOut.addEventListener('click', () => { try { signOut(); } catch(e){console.error(e);} });
-  if (btnSignOutTop) btnSignOutTop.addEventListener('click', () => { try { signOut(); } catch(e){console.error(e);} });
 
   // admin sign-in button exists but behavior is controlled by updateAuthUI() based on session state
   const adminIntro = document.getElementById('adminIntro');
   if (adminIntro) adminIntro.style.display = 'none'; // ensure hidden at startup
   
+  const addBtn = document.getElementById('btnAdd') || document.querySelector('.form-box button');
   if (addBtn) addBtn.addEventListener('click', () => { try { addCard(); } catch(e){console.error(e);} });
   const deleteBtn = document.getElementById('btnDelete');
   if (deleteBtn) deleteBtn.addEventListener('click', () => { try { deleteCard(); } catch(e){console.error(e);} });
   const btnDeleteByEnglish = document.getElementById('btnDeleteByEnglish');
   if (btnDeleteByEnglish) btnDeleteByEnglish.addEventListener('click', () => { try { deleteByEnglish(); } catch(e){console.error(e);} });
+  
+  if (modeReview) modeReview.addEventListener('click', () => setMode('review'));
+  if (modeTest) modeTest.addEventListener('click', () => setMode('test'));
   if (modeEdit) modeEdit.addEventListener('click', () => setMode('edit'));
-  if (modePractice) modePractice.addEventListener('click', () => setMode('practice'));
+  
   if (prevBtn) prevBtn.addEventListener('click', (e) => { e.stopPropagation(); try { prevCard(); } catch(err){console.error(err);} });
   if (nextBtn) nextBtn.addEventListener('click', (e) => { e.stopPropagation(); try { nextCard(); } catch(err){console.error(err);} });
 
-  // practice controls
-  const submitBtn = document.getElementById('practiceSubmitBtn');
-  const nextPracticeBtn = document.getElementById('practiceNextBtn');
-  const endPracticeBtn = document.getElementById('practiceEndBtn');
-  if (submitBtn) submitBtn.addEventListener('click', () => submitPracticeAnswer());
-  if (nextPracticeBtn) nextPracticeBtn.addEventListener('click', () => nextPracticeQuestion());
-  if (endPracticeBtn) endPracticeBtn.addEventListener('click', () => endPractice());
+  // Test controls
+  if (btnYes) btnYes.addEventListener('click', () => registerTestResult(true));
+  if (btnNo) btnNo.addEventListener('click', () => registerTestResult(false));
+  if (btnEnd) btnEnd.addEventListener('click', () => endTest());
+  if (btnRestart) btnRestart.addEventListener('click', () => restartTest());
 
   // flashcard flip
   const card = document.querySelector('.flashcard');
