@@ -475,6 +475,25 @@ async function deleteByEnglish() {
 }
 
 
+function speakSpanish(text) {
+  if (!text) return;
+  if ('speechSynthesis' in window) {
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'es-ES'; // Spanish (Spain)
+    utterance.rate = 0.85;    // Slightly slower for better clarity (default is 1.0)
+
+    // Optional: try to find a better Spanish voice if available
+    const voices = window.speechSynthesis.getVoices();
+    const spanishVoice = voices.find(v => v.lang.startsWith('es-'));
+    if (spanishVoice) utterance.voice = spanishVoice;
+
+    window.speechSynthesis.speak(utterance);
+  }
+}
+
 function flipCard() {
   const cardInner = document.getElementById('cardInner');
   isFlipped = !isFlipped;
@@ -484,6 +503,17 @@ function flipCard() {
   if (mode === 'test') {
       const testControlsEl = document.getElementById('testControls');
       if (testControlsEl) testControlsEl.style.display = isFlipped ? 'block' : 'none';
+  }
+
+  // Auto-play audio when flipped to Spanish (back side)
+  if (isFlipped && flashcards.length > 0) {
+    const logicalIndex = (displayOrder && Array.isArray(displayOrder) && displayOrder.length === flashcards.length)
+      ? displayOrder[currentIndex]
+      : currentIndex;
+    const card = flashcards[logicalIndex];
+    if (card && card.spanish) {
+      speakSpanish(card.spanish);
+    }
   }
 }
 
@@ -499,9 +529,13 @@ function displayCard() {
       if (navBottomEl) navBottomEl.style.display = 'none'; // Force hidden in test mode
   }
 
+  const audioBtn = document.getElementById('audioBtn');
+  const cardBackText = document.getElementById('cardBackText');
+
   if (!flashcards || flashcards.length === 0) {
     document.getElementById('cardFront').innerText = 'Add a word to start';
-    document.getElementById('cardBack').innerText = '-';
+    if (cardBackText) cardBackText.innerText = '-';
+    if (audioBtn) audioBtn.style.display = 'none';
     return;
   }
 
@@ -512,7 +546,8 @@ function displayCard() {
 
   const card = flashcards[logicalIndex] || flashcards[0];
   document.getElementById('cardFront').innerText = card.english;
-  document.getElementById('cardBack').innerText = ensureSpanishQuestionMark(card.spanish);
+  if (cardBackText) cardBackText.innerText = ensureSpanishQuestionMark(card.spanish);
+  if (audioBtn) audioBtn.style.display = 'flex';
 }
 
 function nextCard() {
@@ -694,6 +729,23 @@ function wireUi() {
   if (btnNo) btnNo.addEventListener('click', () => registerTestResult(false));
   if (btnEnd) btnEnd.addEventListener('click', () => endTest());
   if (btnRestart) btnRestart.addEventListener('click', () => restartTest());
+
+  // Audio button playback
+  const audioBtn = document.getElementById('audioBtn');
+  if (audioBtn) {
+    audioBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // Don't flip the card when clicking the audio button
+      if (flashcards.length > 0) {
+        const logicalIndex = (displayOrder && Array.isArray(displayOrder) && displayOrder.length === flashcards.length)
+          ? displayOrder[currentIndex]
+          : currentIndex;
+        const card = flashcards[logicalIndex];
+        if (card && card.spanish) {
+          speakSpanish(card.spanish);
+        }
+      }
+    });
+  }
 
   // flashcard flip
   const card = document.querySelector('.flashcard');
